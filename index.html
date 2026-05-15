@@ -8,1125 +8,360 @@
 <meta name="apple-mobile-web-app-title" content="PawPath">
 <meta name="theme-color" content="#E8572A">
 <title>PawPath — AI Dog Training</title>
-
-<!-- PWA Manifest inline -->
-<script>
-const manifest = {
-  name: "PawPath — AI Dog Training",
-  short_name: "PawPath",
-  start_url: "/",
-  display: "standalone",
-  background_color: "#FFFCF8",
-  theme_color: "#E8572A",
-  orientation: "portrait",
-  icons: [
-    { src: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' rx='40' fill='%23E8572A'/><text y='130' x='96' text-anchor='middle' font-size='110'>🐾</text></svg>", sizes: "192x192", type: "image/svg+xml" }
-  ]
-};
-const blob = new Blob([JSON.stringify(manifest)], {type: 'application/json'});
-const manifestURL = URL.createObjectURL(blob);
-document.write('<link rel="manifest" href="' + manifestURL + '">');
-
-// ══════════════════════════════════════
-// WEEKLY PLAN SYSTEM
-// ══════════════════════════════════════
-
-const WEEK_PLANS = {
-  1: {
-    theme: 'Foundation Week',
-    description: 'Building focus and basic commands',
-    icon: '🎯',
-    days: [
-      { title: 'Name Recognition & Focus', duration: 15, category: 'basic_commands', exercises: ['Name game', 'Eye contact', 'Sit intro'] },
-      { title: 'Sit Command Deep Dive', duration: 15, category: 'basic_commands', exercises: ['Sit with treat lure', 'Sit with hand signal', 'Sit at distance'] },
-      { title: 'Stay Basics', duration: 15, category: 'basic_commands', exercises: ['Wait 3 seconds', 'Wait 10 seconds', 'Release command'] },
-      { title: 'Leash Introduction', duration: 15, category: 'leash_training', exercises: ['Leash on/off game', 'Walk beside you', 'Stop & reward'] },
-      { title: 'Come Command', duration: 15, category: 'basic_commands', exercises: ['Come from 1 meter', 'Come from 3 meters', 'Come with distraction'] },
-      { title: 'Down Command', duration: 15, category: 'basic_commands', exercises: ['Lure to ground', 'Hand signal down', 'Down & stay'] },
-      { title: 'Week 1 Review', duration: 20, category: 'basic_commands', exercises: ['Sit', 'Stay', 'Come', 'Down combo'] },
-    ]
-  },
-  2: {
-    theme: 'Consistency Week',
-    description: 'Strengthening commands with distractions',
-    icon: '💪',
-    days: [
-      { title: 'Sit in New Locations', duration: 15, category: 'basic_commands', exercises: ['Sit in kitchen', 'Sit in garden', 'Sit near door'] },
-      { title: 'Loose Leash Walking', duration: 20, category: 'leash_training', exercises: ['5 steps no pull', 'Change direction', 'Stop & go game'] },
-      { title: 'Leave It Command', duration: 15, category: 'basic_commands', exercises: ['Leave treat on floor', 'Leave toy', 'Leave food on walk'] },
-      { title: 'Down & Stay Extended', duration: 15, category: 'basic_commands', exercises: ['Down 30 seconds', 'Down while you move', 'Down with distractions'] },
-      { title: 'Greeting Manners', duration: 15, category: 'problem_behaviors', exercises: ['No jump training', 'Four paws rule', 'Calm hello'] },
-      { title: 'Recall Game', duration: 15, category: 'basic_commands', exercises: ['Hide & come', 'Come from other room', 'Come with toys around'] },
-      { title: 'Week 2 Review', duration: 20, category: 'basic_commands', exercises: ['All commands combo', 'Outside practice'] },
-    ]
-  },
-  3: {
-    theme: 'Real World Week',
-    description: 'Training outside with real distractions',
-    icon: '🌍',
-    days: [
-      { title: 'Outdoor Sit & Stay', duration: 20, category: 'basic_commands', exercises: ['Sit at park entrance', 'Stay with dogs nearby', 'Come from distance'] },
-      { title: 'Walk with Other Dogs', duration: 20, category: 'leash_training', exercises: ['Pass another dog calmly', 'Focus on you', 'No lunging'] },
-      { title: 'Impulse Control', duration: 15, category: 'basic_commands', exercises: ['Wait at door', 'Wait for food bowl', 'Wait before crossing street'] },
-      { title: 'Behavior Fix Day', duration: 20, category: 'problem_behaviors', exercises: ['Target specific problem', 'Practice scenario', 'Reward calm response'] },
-      { title: 'Socialization Walk', duration: 25, category: 'socialization', exercises: ['Meet 1 new person', 'Hear new sounds', 'New surface walking'] },
-      { title: 'Off Leash Recall', duration: 15, category: 'leash_training', exercises: ['Long line recall', '10 meter come', 'Come past distractions'] },
-      { title: 'Week 3 Review', duration: 20, category: 'basic_commands', exercises: ['Full outdoor session', 'All commands outside'] },
-    ]
-  },
-  4: {
-    theme: 'Mastery Week',
-    description: 'Polishing everything and adding fun tricks',
-    icon: '⭐',
-    days: [
-      { title: 'Commands Without Treats', duration: 15, category: 'basic_commands', exercises: ['Sit on verbal only', 'Stay on verbal only', 'Come on verbal only'] },
-      { title: 'High Five Trick', duration: 15, category: 'tricks', exercises: ['Paw touch', 'High five motion', 'High five on cue'] },
-      { title: 'Spin Trick', duration: 15, category: 'tricks', exercises: ['Lure circle', 'Spin on cue', 'Spin both directions'] },
-      { title: 'Full Walk Test', duration: 25, category: 'leash_training', exercises: ['30 min perfect walk', 'Pass 3 distractions', 'Sit at every corner'] },
-      { title: 'Behavior Proof Day', duration: 20, category: 'problem_behaviors', exercises: ['Test main problem fixed', 'Real scenario practice', 'Celebrate progress'] },
-      { title: 'Play Dead Trick', duration: 15, category: 'tricks', exercises: ['Down & roll', 'Stay still', 'Bang! cue'] },
-      { title: 'Graduation Day! 🎓', duration: 30, category: 'tricks', exercises: ['Show all commands', 'Do 2 tricks', 'Celebrate with your dog!'] },
-    ]
-  }
-};
-
-let currentPlanWeek = 1;
-const TODAY_DAY = 7; // simulating day 7 of week 1
-
-function openPlanScreen() {
-  currentPlanWeek = 1;
-  renderWeekPlan(1);
-  _origGoTo('s-plan');
-}
-
-function switchWeek(week) {
-  currentPlanWeek = week;
-  // Update tabs
-  document.querySelectorAll('.week-tab').forEach((t, i) => {
-    t.classList.toggle('active', i + 1 === week);
-  });
-  renderWeekPlan(week);
-}
-
-function renderWeekPlan(week) {
-  const plan = WEEK_PLANS[week];
-  if (!plan) return;
-  const breed = state.dogBreed || 'your dog';
-  const unlocked = isWeekUnlocked(week);
-  const weekDone = getWeekCompletedCount(week);
-  const { week: todayWeek, day: todayDay } = getTodayWeekDay();
-
-  const sub = document.getElementById('plan-sub');
-  if (sub) sub.textContent = `Week ${week} of 4 · ${breed}`;
-
-  const list = document.getElementById('days-list');
-  if (!list) return;
-
-  // Locked week message
-  if (!unlocked) {
-    const prevDone = getWeekCompletedCount(week - 1);
-    const needed = DAYS_TO_UNLOCK - prevDone;
-    list.innerHTML = `
-      <div style="text-align:center;padding:40px 20px">
-        <div style="font-size:56px;margin-bottom:16px">🔒</div>
-        <div style="font-family:'Instrument Serif',serif;font-size:22px;color:var(--ink);margin-bottom:10px">Week ${week} is locked</div>
-        <div style="font-size:14px;font-weight:600;color:var(--gray);line-height:1.6;margin-bottom:24px">Complete ${needed} more day${needed > 1 ? 's' : ''} in Week ${week-1} to unlock this week.</div>
-        <div style="background:var(--bone);border-radius:16px;padding:16px;text-align:left">
-          <div style="font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--gray);margin-bottom:10px">Your Week ${week-1} Progress</div>
-          <div style="display:flex;gap:6px;flex-wrap:wrap">
-            ${Array.from({length:7},(_,i)=>`<div style="width:32px;height:32px;border-radius:8px;background:${isDayComplete(week-1,i+1)?'var(--paw)':'var(--stone)'};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:white">${isDayComplete(week-1,i+1)?'✓':i+1}</div>`).join('')}
-          </div>
-          <div style="margin-top:10px;font-size:13px;font-weight:700;color:var(--paw)">${prevDone}/${DAYS_TO_UNLOCK} days completed</div>
-        </div>
-      </div>
-    `;
-    return;
-  }
-
-  // Progress bar for current week
-  const progressPct = Math.round((weekDone / 7) * 100);
-
-  let html = `
-    <div class="week-summary">
-      <div class="ws-icon">${plan.icon}</div>
-      <div style="flex:1">
-        <div class="ws-title">${plan.theme}</div>
-        <div class="ws-desc">${plan.description}</div>
-        <div style="margin-top:8px;background:rgba(255,255,255,.1);border-radius:99px;height:5px;overflow:hidden">
-          <div style="height:100%;width:${progressPct}%;background:var(--paw);border-radius:99px;transition:width .4s"></div>
-        </div>
-        <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,.5);margin-top:4px">${weekDone}/7 days complete</div>
-      </div>
-    </div>
-  `;
-
-  plan.days.forEach((day, idx) => {
-    const dayNum = idx + 1;
-    const isDone = isDayComplete(week, dayNum);
-    const isToday = week === todayWeek && dayNum === todayDay;
-    const isFuture = !isDone && !isToday;
-
-    const cardClass = isToday ? 'day-card today' : isDone ? 'day-card completed' : 'day-card';
-    const numDisplay = isDone ? '✓' : dayNum;
-
-    let badge = '';
-    if (isToday) badge = '<span class="day-badge today-badge">Today</span>';
-    else if (isDone) badge = '<span class="day-badge done-badge">Done ✓</span>';
-
-    const onclick = (isToday || isDone) ? `onclick="openLesson('${day.category}','${day.title}',${week},${dayNum})"` : 
-                    isFuture ? `onclick="showToast('Complete today first to unlock Day ${dayNum}')"` : '';
-
-    html += `
-      <div class="${cardClass}" ${onclick}>
-        <div class="day-num" style="${isDone?'background:var(--success);color:white':isToday?'background:var(--paw);color:white':''}">${numDisplay}</div>
-        <div class="day-info">
-          <div class="day-title" style="${isFuture&&!isDone?'color:var(--gray)':''}">${day.title}</div>
-          <div class="day-meta">⏱ ${day.duration} min · ${day.exercises.slice(0,2).join(' · ')}</div>
-        </div>
-        ${badge}
-      </div>
-    `;
-  });
-
-  list.innerHTML = html;
-}
-
-
-// ══════════════════════════════════════
-// PROGRESS-BASED UNLOCK SYSTEM
-// ══════════════════════════════════════
-
-const DAYS_TO_UNLOCK = 5; // days needed to unlock next week
-
-function getCompletedDays() {
-  return JSON.parse(localStorage.getItem('pp_completed_days') || '[]');
-}
-
-function markDayComplete(week, day) {
-  const completed = getCompletedDays();
-  const key = `w${week}d${day}`;
-  if (!completed.includes(key)) {
-    completed.push(key);
-    localStorage.setItem('pp_completed_days', JSON.stringify(completed));
-  }
-  updateStreak();
-  checkWeekUnlock(week);
-  showToast('🔥 Day complete! Keep going!');
-}
-
-function isDayComplete(week, day) {
-  return getCompletedDays().includes(`w${week}d${day}`);
-}
-
-function getWeekCompletedCount(week) {
-  const completed = getCompletedDays();
-  return completed.filter(k => k.startsWith(`w${week}d`)).length;
-}
-
-function isWeekUnlocked(week) {
-  if (week === 1) return true;
-  const prevWeekDone = getWeekCompletedCount(week - 1);
-  return prevWeekDone >= DAYS_TO_UNLOCK;
-}
-
-function checkWeekUnlock(currentWeek) {
-  const nextWeek = currentWeek + 1;
-  if (nextWeek <= 4 && isWeekUnlocked(nextWeek)) {
-    showToast(`🎉 Week ${nextWeek} unlocked! New challenges await!`);
-  }
-}
-
-function updateStreak() {
-  const completed = getCompletedDays();
-  const streakEl = document.querySelector('.streak-num');
-  if (streakEl) {
-    streakEl.textContent = '🔥 ' + completed.length;
-  }
-}
-
-function getTodayWeekDay() {
-  const completed = getCompletedDays();
-  const totalDone = completed.length;
-  const week = Math.min(Math.floor(totalDone / 7) + 1, 4);
-  const day = Math.min((totalDone % 7) + 1, 7);
-  return { week, day };
-}
-
-// Override completeLesson to track progress
-function completeLesson() {
-  const w = state.currentWeek || 1;
-  const d = state.currentDay || 1;
-  markDayComplete(w, d);
-
-  // Advance to next day
-  const next = getTodayWeekDay();
-  state.currentWeek = next.week;
-  state.currentDay = next.day;
-
-  // Update home card
-  updateHomeCard();
-
-  setTimeout(() => _origGoTo('s-home'), 600);
-}
-
-function updateHomeCard() {
-  const { week, day } = getTodayWeekDay();
-  const weekPlan = WEEK_PLANS[week];
-  if (!weekPlan) return;
-
-  const dayPlan = weekPlan.days[day - 1];
-  if (!dayPlan) return;
-
-  const labelEl = document.querySelector('.today-label span');
-  const titleEl = document.querySelector('.today-title');
-  const metaEl = document.querySelector('.today-meta');
-
-  const totalDay = (week - 1) * 7 + day;
-  if (labelEl) labelEl.textContent = `Day ${totalDay} of 28 · Week ${week}`;
-  if (titleEl) titleEl.textContent = dayPlan.title;
-  if (metaEl) metaEl.textContent = `⏱ ${dayPlan.duration} min · ${dayPlan.exercises.length} exercises · ${state.dogBreed || 'Dog'} tips`;
-
-  state.currentCategory = dayPlan.category;
-  state.currentLessonTitle = dayPlan.title;
-}
-
-
-// ══════════════════════════════════════
-// PLAN COMPLETION & RENEWAL HOOK
-// ══════════════════════════════════════
-
-function checkPlanComplete() {
-  let totalDone = 0;
-  for (let w = 1; w <= 4; w++) {
-    totalDone += getWeekCompletedCount(w);
-  }
-  if (totalDone >= 28) {
-    setTimeout(() => showPlanComplete(), 1000);
-  }
-}
-
-function showPlanComplete() {
-  const dogName = state.dogName || 'Buddy';
-  const breed = state.dogBreed || 'your dog';
-  const el = document.getElementById('s-home');
-  if (!el) return;
-
-  const banner = document.createElement('div');
-  banner.style.cssText = `
-    position:fixed;bottom:90px;left:50%;transform:translateX(-50%);
-    background:linear-gradient(135deg,#2C1A0E,#4A2A10);
-    color:white;border-radius:20px;padding:20px 24px;
-    width:calc(100% - 48px);max-width:370px;
-    box-shadow:0 8px 32px rgba(0,0,0,.3);
-    z-index:999;text-align:center;
-    border:2px solid rgba(232,87,42,.4);
-  `;
-  banner.innerHTML = `
-    <div style="font-size:40px;margin-bottom:10px">🎓</div>
-    <div style="font-family:'Instrument Serif',serif;font-size:20px;color:white;margin-bottom:8px">${dogName} completed the full plan!</div>
-    <div style="font-size:13px;color:rgba(255,255,255,.6);line-height:1.6;margin-bottom:16px">
-      Amazing progress with your ${breed}. The AI is generating your next advanced plan now...
-    </div>
-    <div style="background:var(--paw);border-radius:99px;padding:12px 24px;font-size:14px;font-weight:800;cursor:pointer" onclick="this.parentElement.remove();localStorage.clear();location.reload()">
-      🤖 Generate Plan 2 →
-    </div>
-    <div style="font-size:11px;color:rgba(255,255,255,.3);margin-top:10px">Tap to restart with an advanced program</div>
-  `;
-  document.body.appendChild(banner);
-}
-
-// Call on init
-window.addEventListener('load', () => {
-  setTimeout(checkPlanComplete, 3000);
-});
-
-</script>
-
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Manrope:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-
 <style>
-:root {
-  --paw:   #E8572A;
-  --paw-d: #C03A10;
-  --paw-l: #FF8055;
-  --warm:  #FFF0E8;
-  --ink:   #0C0C0C;
-  --bark:  #2C1A0E;
-  --cream: #FFFCF8;
-  --bone:  #F5F0E8;
-  --stone: #E5DDD4;
-  --gray:  #888;
-  --white: #FFFFFF;
-  --gold:  #FFD700;
-  --success: #22C55E;
-  --r: 16px;
-  --r-lg: 24px;
-  --r-xl: 32px;
-  --safe-top: env(safe-area-inset-top, 44px);
-  --safe-bot: env(safe-area-inset-bottom, 20px);
+:root{
+  --paw:#E8572A;--paw-d:#C03A10;--paw-l:#FF8055;
+  --warm:#FFF0E8;--ink:#0C0C0C;--bark:#2C1A0E;
+  --cream:#FFFCF8;--bone:#F5F0E8;--stone:#E5DDD4;
+  --gray:#888;--white:#FFFFFF;--gold:#FFD700;
+  --success:#22C55E;--r:16px;--r-lg:24px;--r-xl:32px;
+  --safe-top:env(safe-area-inset-top,44px);
+  --safe-bot:env(safe-area-inset-bottom,20px);
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%;overflow:hidden}
-body{
-  font-family:'Manrope',sans-serif;
-  background:var(--cream);
-  color:var(--ink);
-  -webkit-font-smoothing:antialiased;
-  overscroll-behavior:none;
+html{scroll-behavior:smooth}
+
+/* MOBILE */
+@media(max-width:767px){
+  html,body{height:100%;overflow:hidden}
+  body{background:var(--cream)}
+  #app{width:100%;height:100vh;height:100dvh;border-radius:0;border:none;box-shadow:none}
+  .dsk{display:none}
 }
 
-/* ── APP SHELL ── */
-#app{
-  width:100%;
-  height:100%;
-  display:flex;
-  flex-direction:column;
-  max-width:430px;
-  margin:0 auto;
-  position:relative;
-  background:var(--cream);
-  box-shadow:0 0 40px rgba(0,0,0,.08);
+/* DESKTOP */
+@media(min-width:768px){
+  body{background:#E0D8CE;display:flex;flex-direction:column;align-items:center;padding:32px 24px 48px;min-height:100vh}
+  #app{width:390px;height:844px;border-radius:52px;box-shadow:0 32px 80px rgba(0,0,0,.28),inset 0 0 0 2px rgba(255,255,255,.3);overflow:hidden;border:10px solid #1A1A1A;flex-shrink:0}
+  .dsk-hdr{display:flex;align-items:center;justify-content:space-between;width:390px;margin-bottom:20px}
+  .dsk-logo{font-family:'Instrument Serif',serif;font-size:24px;color:#2C1A0E}
+  .dsk-logo span{color:var(--paw)}
+  .dsk-tag{font-size:11px;font-weight:800;color:#AAA;letter-spacing:.08em;text-transform:uppercase}
+  .dsk-footer{width:390px;margin-top:20px;text-align:center;font-size:11px;font-weight:600;color:#AAA}
 }
 
-/* ── STATUS BAR ── */
-.status-bar{
-  height:calc(var(--safe-top) + 4px);
-  background:var(--cream);
-  flex-shrink:0;
-  padding-top:var(--safe-top);
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  padding-left:20px;
-  padding-right:20px;
-  font-size:13px;
-  font-weight:700;
+/* LARGE DESKTOP — sidebar */
+@media(min-width:1100px){
+  body{flex-direction:row;align-items:flex-start;justify-content:center;gap:48px;padding:48px 40px}
+  .dsk-hdr,.dsk-footer{display:none}
+  .dsk-sidebar{display:flex;flex-direction:column;gap:16px;width:260px;flex-shrink:0;padding-top:72px}
+  .sc{background:white;border-radius:20px;padding:18px;box-shadow:0 2px 16px rgba(0,0,0,.06)}
+  .sc-ttl{font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#AAA;margin-bottom:10px}
+  .sc-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #F0EDE8}
+  .sc-row:last-child{border-bottom:none}
+  .sc-icon{font-size:18px;width:24px;text-align:center}
+  .sc-lbl{font-size:12px;font-weight:600;color:#666;flex:1}
+  .sc-val{font-size:13px;font-weight:800;color:#1A1A1A}
+  .sc-feat{display:flex;align-items:flex-start;gap:8px;padding:5px 0}
+  .sc-feat-i{font-size:16px;flex-shrink:0;margin-top:1px}
+  .sc-feat-t{font-size:12px;font-weight:600;color:#666;line-height:1.4}
 }
-.status-bar.dark{background:var(--ink);color:white}
-.status-bar.paw{background:var(--paw);color:white}
-.status-bar.bark{background:var(--bark);color:white}
-.status-right{display:flex;gap:6px;align-items:center;font-size:12px}
+@media(min-width:768px) and (max-width:1099px){.dsk-sidebar{display:none}}
 
-/* ── SCREENS ── */
-.screen{
-  flex:1;
-  overflow-y:auto;
-  overflow-x:hidden;
-  display:none;
-  flex-direction:column;
-  -webkit-overflow-scrolling:touch;
-  scrollbar-width:none;
-}
+body{font-family:'Manrope',sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased}
+#app{position:relative;display:flex;flex-direction:column;background:var(--cream);overflow:hidden}
+
+/* STATUS BAR */
+.sb{height:calc(var(--safe-top) + 4px);background:transparent;flex-shrink:0;padding-top:var(--safe-top);display:flex;align-items:center;justify-content:space-between;padding-left:20px;padding-right:20px;font-size:13px;font-weight:700}
+.sb.dark{background:var(--ink);color:white}
+.sb.bark-bg{background:var(--bark);color:white}
+.sb-r{display:flex;gap:6px;align-items:center;font-size:12px}
+
+/* SCREENS */
+.screen{flex:1;overflow-y:auto;overflow-x:hidden;display:none;flex-direction:column;-webkit-overflow-scrolling:touch;scrollbar-width:none}
 .screen::-webkit-scrollbar{display:none}
 .screen.active{display:flex}
 
-/* ── NAV BAR ── */
-.nav-bar{
-  background:var(--white);
-  border-top:1px solid var(--stone);
-  display:flex;
-  padding-bottom:var(--safe-bot);
-  flex-shrink:0;
-}
-.nav-item{
-  flex:1;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  gap:3px;
-  padding:10px 0 6px;
-  cursor:pointer;
-  transition:opacity .15s;
-  -webkit-tap-highlight-color:transparent;
-}
-.nav-item:active{opacity:.6}
-.nav-icon{font-size:22px;position:relative}
-.nav-label{font-size:10px;font-weight:700;color:var(--gray)}
-.nav-item.active .nav-label{color:var(--paw)}
-.nav-badge{
-  position:absolute;top:-4px;right:-8px;
-  background:var(--paw);color:white;
-  font-size:9px;font-weight:900;
-  width:16px;height:16px;border-radius:50%;
-  display:flex;align-items:center;justify-content:center;
-}
+/* NAV */
+.nav{background:var(--white);border-top:1px solid var(--stone);display:flex;padding-bottom:var(--safe-bot);flex-shrink:0}
+.ni{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 0 6px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.ni:active{opacity:.6}
+.ni-icon{font-size:22px}
+.ni-lbl{font-size:10px;font-weight:700;color:var(--gray)}
+.ni.act .ni-lbl{color:var(--paw)}
 
-/* ── BUTTONS ── */
-.btn{
-  display:flex;align-items:center;justify-content:center;gap:8px;
-  background:var(--paw);color:white;
-  font-family:'Manrope',sans-serif;font-size:16px;font-weight:800;
-  padding:16px 24px;border-radius:99px;
-  border:none;cursor:pointer;width:100%;
-  transition:all .15s;
-  -webkit-tap-highlight-color:transparent;
-  letter-spacing:.01em;
-}
+/* BUTTONS */
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;background:var(--paw);color:white;font-family:'Manrope',sans-serif;font-size:16px;font-weight:800;padding:16px 24px;border-radius:99px;border:none;cursor:pointer;width:100%;transition:all .15s;-webkit-tap-highlight-color:transparent}
 .btn:active{transform:scale(.97);background:var(--paw-d)}
-.btn-outline{background:transparent;border:2px solid var(--paw);color:var(--paw)}
-.btn-white{background:white;color:var(--paw)}
-.btn-ink{background:var(--ink);color:white}
-.btn-sm{font-size:14px;padding:12px 20px}
 
-/* ── CARDS ── */
-.card{
-  background:var(--white);
-  border-radius:var(--r-lg);
-  border:1px solid var(--stone);
-  padding:18px;
-}
-
-/* ── CHIP ── */
-.chip{
-  display:inline-flex;align-items:center;gap:5px;
-  background:var(--bone);border:1.5px solid var(--stone);
-  border-radius:99px;padding:8px 16px;
-  font-size:13px;font-weight:700;color:var(--ink);
-  cursor:pointer;transition:all .15s;user-select:none;
-  -webkit-tap-highlight-color:transparent;
-}
+/* CHIP */
+.chip{display:inline-flex;align-items:center;gap:5px;background:var(--bone);border:1.5px solid var(--stone);border-radius:99px;padding:8px 16px;font-size:13px;font-weight:700;color:var(--ink);cursor:pointer;transition:all .15s;user-select:none;-webkit-tap-highlight-color:transparent}
 .chip.sel{background:var(--warm);border-color:var(--paw);color:var(--paw)}
 
-/* ── PROGRESS ── */
-.prog-bar{height:6px;background:var(--stone);border-radius:99px;overflow:hidden}
-.prog-fill{height:100%;background:linear-gradient(90deg,var(--paw),var(--paw-l));border-radius:99px;transition:width .4s ease}
+/* PROGRESS */
+.prog{height:6px;background:var(--stone);border-radius:99px;overflow:hidden}
+.prog-f{height:100%;background:linear-gradient(90deg,var(--paw),var(--paw-l));border-radius:99px;transition:width .4s ease}
 
-/* ── SECTION ── */
-.section{padding:0 20px;margin-bottom:24px}
-.section-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
-.section-title{font-size:17px;font-weight:800;color:var(--ink)}
+/* SECTION */
+.sec{padding:0 20px;margin-bottom:24px}
+.sec-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.sec-ttl{font-size:17px;font-weight:800;color:var(--ink)}
 .see-all{font-size:13px;font-weight:700;color:var(--paw);cursor:pointer}
 
-/* ── ANIMATIONS ── */
+/* ANIMATIONS */
 @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.04)}}
-@keyframes pop{0%{transform:scale(.8);opacity:0}100%{transform:scale(1);opacity:1}}
+.fu{animation:fadeUp .4s ease both}
+.fu1{animation:fadeUp .4s .08s ease both}
+.fu2{animation:fadeUp .4s .16s ease both}
+.fu3{animation:fadeUp .4s .24s ease both}
 
-.anim-fade{animation:fadeUp .4s ease both}
-.anim-fade-1{animation:fadeUp .4s .08s ease both}
-.anim-fade-2{animation:fadeUp .4s .16s ease both}
-.anim-fade-3{animation:fadeUp .4s .24s ease both}
-
-/* ══════════════════════════════════════
-   SCREEN: SPLASH
-══════════════════════════════════════ */
-#s-splash{
-  background:linear-gradient(150deg,var(--paw) 0%,var(--paw-d) 100%);
-  align-items:center;justify-content:center;gap:16px;
-}
-.splash-paw{font-size:88px;animation:pulse 2s infinite}
-.splash-name{font-family:'Instrument Serif',serif;font-size:52px;color:white;letter-spacing:-.02em}
-.splash-tag{font-size:15px;font-weight:600;color:rgba(255,255,255,.7)}
-
-/* ══════════════════════════════════════
-   SCREEN: ONBOARDING — ACCESS
-══════════════════════════════════════ */
-#s-access{background:var(--bark);align-items:center;justify-content:center;padding:40px 28px}
-.access-logo{font-size:64px;margin-bottom:20px;animation:pulse 2s infinite}
-.access-title{font-family:'Instrument Serif',serif;font-size:36px;color:white;text-align:center;margin-bottom:8px}
-.access-sub{font-size:15px;font-weight:500;color:rgba(255,255,255,.55);text-align:center;line-height:1.65;margin-bottom:40px}
-.access-box{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:var(--r-lg);padding:24px;width:100%;margin-bottom:16px}
-.access-label{font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:10px}
-.access-input{
-  width:100%;background:rgba(255,255,255,.08);border:1.5px solid rgba(255,255,255,.15);
-  border-radius:var(--r);padding:14px 16px;
-  font-family:'Manrope',sans-serif;font-size:16px;font-weight:600;color:white;
-  outline:none;transition:border-color .2s;
-}
-.access-input::placeholder{color:rgba(255,255,255,.3)}
-.access-input:focus{border-color:var(--paw)}
-.access-note{font-size:12px;font-weight:600;color:rgba(255,255,255,.3);text-align:center;margin-top:12px;line-height:1.6}
-
-/* ══════════════════════════════════════
-   SCREEN: QUIZ
-══════════════════════════════════════ */
-.quiz-header{padding:16px 20px 8px;display:flex;align-items:center;gap:12px;flex-shrink:0}
-.quiz-back{font-size:22px;cursor:pointer;color:var(--ink);-webkit-tap-highlight-color:transparent}
-.quiz-prog-wrap{flex:1}
-.quiz-step-label{font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--gray);margin-bottom:6px}
-.quiz-body{flex:1;padding:16px 20px 24px;overflow-y:auto}
-.quiz-q{font-family:'Instrument Serif',serif;font-size:28px;color:var(--ink);margin-bottom:8px;line-height:1.2}
-.quiz-hint{font-size:14px;font-weight:500;color:var(--gray);margin-bottom:28px;line-height:1.5}
-.quiz-chips{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:28px}
-.quiz-input-field{
-  width:100%;background:var(--white);border:2px solid var(--stone);
-  border-radius:var(--r);padding:16px;
-  font-family:'Manrope',sans-serif;font-size:18px;font-weight:700;color:var(--ink);
-  outline:none;transition:border-color .2s;margin-bottom:28px;
-}
-.quiz-input-field:focus{border-color:var(--paw)}
-.quiz-footer{padding:16px 20px;padding-bottom:calc(16px + var(--safe-bot));flex-shrink:0;background:var(--cream)}
-
-/* ══════════════════════════════════════
-   SCREEN: GENERATING
-══════════════════════════════════════ */
-#s-generating{
-  background:linear-gradient(150deg,var(--bark) 0%,#1A0C06 100%);
-  align-items:center;justify-content:center;padding:40px 28px;text-align:center;
-}
-.gen-spinner{
-  width:72px;height:72px;border-radius:50%;
-  border:4px solid rgba(232,87,42,.2);border-top-color:var(--paw);
-  animation:spin 1s linear infinite;margin:0 auto 24px;
-}
-.gen-title{font-family:'Instrument Serif',serif;font-size:30px;color:white;margin-bottom:12px}
-.gen-sub{font-size:15px;font-weight:500;color:rgba(255,255,255,.45);line-height:1.65;max-width:280px;margin:0 auto 40px}
-.gen-steps{text-align:left;width:100%;max-width:300px;margin:0 auto}
-.gen-step{display:flex;align-items:center;gap:14px;padding:10px 0}
-.gen-dot{
-  width:22px;height:22px;border-radius:50%;
-  background:var(--paw);display:flex;align-items:center;justify-content:center;
-  font-size:11px;font-weight:900;color:white;flex-shrink:0;
-}
-.gen-dot.pending{background:rgba(255,255,255,.1)}
-.gen-dot.spin{background:transparent;border:2px solid var(--paw);animation:spin 1s linear infinite}
-.gen-text{font-size:14px;font-weight:600;color:rgba(255,255,255,.5)}
-.gen-text.done{color:rgba(255,255,255,.9)}
-
-/* ══════════════════════════════════════
-   SCREEN: HOME
-══════════════════════════════════════ */
-#s-home{background:var(--cream)}
-.home-header{
-  padding:16px 20px 12px;
-  display:flex;justify-content:space-between;align-items:center;
-  flex-shrink:0;
-}
-.home-greeting{font-family:'Instrument Serif',serif;font-size:26px;color:var(--ink)}
-.home-greeting em{font-style:italic;color:var(--paw)}
-.home-sub{font-size:13px;font-weight:600;color:var(--gray);margin-top:2px}
-.avatar{
-  width:42px;height:42px;border-radius:50%;
-  background:linear-gradient(135deg,var(--paw),var(--paw-l));
-  display:flex;align-items:center;justify-content:center;
-  font-size:18px;font-weight:900;color:white;flex-shrink:0;cursor:pointer;
-}
-
-/* Streak */
-.streak-card{
-  margin:0 20px 20px;
-  background:var(--bark);border-radius:var(--r-xl);
-  padding:18px 20px;display:flex;align-items:center;gap:0;
-}
-.streak-left{display:flex;align-items:center;gap:12px;flex:1}
-.streak-flame{font-size:38px}
-.streak-num{font-family:'Instrument Serif',serif;font-size:38px;color:var(--gold);line-height:1}
-.streak-info-label{font-size:11px;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.08em}
-.streak-divider{width:1px;height:44px;background:rgba(255,255,255,.08);margin:0 16px}
-.streak-days{display:flex;gap:5px}
-.sd{
-  width:22px;height:22px;border-radius:7px;
-  background:var(--paw);display:flex;align-items:center;justify-content:center;
-  font-size:9px;font-weight:800;color:white;
-}
-.sd.off{background:rgba(255,255,255,.07);color:rgba(255,255,255,.3)}
-
-/* Today card */
-.today-card{
-  margin:0 20px 24px;
-  background:linear-gradient(140deg,var(--paw) 0%,var(--paw-d) 100%);
-  border-radius:var(--r-xl);padding:20px;cursor:pointer;
-  -webkit-tap-highlight-color:transparent;
-}
-.today-label{font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.6);margin-bottom:8px}
-.today-title{font-family:'Instrument Serif',serif;font-size:24px;color:white;margin-bottom:6px}
-.today-meta{font-size:13px;font-weight:600;color:rgba(255,255,255,.7);margin-bottom:16px}
-.today-exercises{margin-bottom:16px}
-.today-ex{font-size:13px;font-weight:600;color:rgba(255,255,255,.85);margin-bottom:5px;display:flex;align-items:center;gap:6px}
-.today-ex::before{content:'·';color:rgba(255,255,255,.4)}
-.today-start-btn{
-  background:rgba(255,255,255,.18);border-radius:var(--r);
-  padding:12px;text-align:center;
-  font-size:14px;font-weight:800;color:white;
-}
-
-/* Lesson scroll */
-.lesson-scroll{display:flex;gap:12px;padding:0 20px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
-.lesson-scroll::-webkit-scrollbar{display:none}
-.lesson-mini{
-  width:148px;flex-shrink:0;background:var(--white);
-  border-radius:var(--r-lg);border:1px solid var(--stone);
-  overflow:hidden;cursor:pointer;-webkit-tap-highlight-color:transparent;
-}
-.lesson-mini:active{opacity:.8}
-.lesson-thumb{height:90px;display:flex;align-items:center;justify-content:center;font-size:38px}
-.lesson-mini-body{padding:10px}
-.lesson-mini-title{font-size:13px;font-weight:800;color:var(--ink);line-height:1.3;margin-bottom:4px}
-.lesson-mini-meta{font-size:11px;font-weight:600;color:var(--gray)}
-
-/* Behavior shortcut */
-.behavior-shortcut{
-  margin:0 20px;background:var(--white);
-  border:1px solid var(--stone);border-radius:var(--r-lg);
-  padding:16px 18px;display:flex;justify-content:space-between;
-  align-items:center;cursor:pointer;-webkit-tap-highlight-color:transparent;
-}
-.behavior-shortcut:active{background:var(--bone)}
-.bh-left{display:flex;align-items:center;gap:12px}
-.bh-icon{font-size:28px}
-.bh-title{font-size:15px;font-weight:800;color:var(--ink)}
-.bh-sub{font-size:12px;font-weight:600;color:var(--gray);margin-top:2px}
-.bh-arr{font-size:20px;color:var(--stone)}
-
-/* ══════════════════════════════════════
-   SCREEN: LESSON
-══════════════════════════════════════ */
-#s-lesson{background:var(--cream)}
-.lesson-hero{
-  height:260px;
-  background:linear-gradient(150deg,var(--bark),#1A0C06);
-  display:flex;flex-direction:column;justify-content:flex-end;
-  padding:0;position:relative;flex-shrink:0;overflow:hidden;
-}
-.lesson-back{
-  position:absolute;top:calc(var(--safe-top) + 12px);left:20px;
-  width:36px;height:36px;border-radius:50%;
-  background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;
-  font-size:18px;cursor:pointer;color:white;
-  -webkit-tap-highlight-color:transparent;
-}
-.lesson-illustration{
-  width:100%;height:100%;display:flex;flex-direction:column;
-  align-items:center;justify-content:center;gap:8px;padding:12px;
-}
-.lesson-illus-card{
-  background:rgba(255,255,255,.1);border-radius:20px;
-  padding:16px 20px;width:100%;text-align:center;
-  border:1px solid rgba(255,255,255,.15);
-}
-.lesson-illus-emoji{font-size:56px;margin-bottom:6px;display:block}
-.lesson-illus-breed{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.5);margin-bottom:4px}
-.lesson-illus-title{font-size:14px;font-weight:800;color:white;margin-bottom:6px}
-.lesson-illus-tags{display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
-.lesson-illus-tag{background:rgba(255,255,255,.12);border-radius:99px;padding:3px 10px;font-size:10px;font-weight:700;color:rgba(255,255,255,.75)}
-.lesson-illus-focus{
-  background:rgba(232,87,42,.25);border:1px solid rgba(232,87,42,.4);
-  border-radius:14px;padding:10px 14px;width:100%;text-align:center;
-}
-.lesson-illus-focus-label{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,107,53,.9);margin-bottom:3px}
-.lesson-illus-focus-text{font-size:13px;font-weight:700;color:white}
-.lesson-hero-emoji{font-size:52px;text-align:center;margin-bottom:14px}
-.lesson-hero-cat{font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--paw);margin-bottom:6px}
-.lesson-hero-title{font-family:'Instrument Serif',serif;font-size:24px;color:white}
-.lesson-meta-row{padding:14px 20px;display:flex;gap:10px;border-bottom:1px solid var(--stone);flex-shrink:0}
-.lesson-badge{
-  background:var(--bone);border-radius:99px;padding:6px 14px;
-  font-size:11px;font-weight:700;color:var(--gray);display:flex;align-items:center;gap:4px;
-}
-.lesson-body{padding:20px;flex:1;overflow-y:auto}
-.lesson-section-title{font-size:15px;font-weight:800;color:var(--ink);margin:20px 0 14px}
-.step-item{display:flex;gap:14px;margin-bottom:18px;align-items:flex-start}
-.step-num{
-  width:28px;height:28px;border-radius:50%;
-  background:var(--warm);border:2px solid var(--paw);
-  color:var(--paw);font-size:13px;font-weight:900;
-  display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;
-}
-.step-title{font-size:14px;font-weight:800;color:var(--ink);margin-bottom:4px}
-.step-desc{font-size:13px;font-weight:500;color:var(--gray);line-height:1.6}
-.tip-box{
-  background:#FFFBEA;border:1.5px solid #FDE68A;
-  border-radius:var(--r);padding:16px;margin:20px 0 24px;
-}
-.tip-title{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#92400E;margin-bottom:6px}
-.tip-text{font-size:13px;font-weight:600;color:#78350F;line-height:1.6}
-.lesson-footer{padding:16px 20px;padding-bottom:calc(16px + var(--safe-bot));flex-shrink:0;background:var(--cream)}
-
-/* ══════════════════════════════════════
-   SCREEN: BEHAVIOR PROGRAMS
-══════════════════════════════════════ */
-#s-behaviors{background:var(--cream)}
-.behaviors-header{padding:20px 20px 16px;flex-shrink:0}
-.behaviors-title{font-family:'Instrument Serif',serif;font-size:28px;color:var(--ink);margin-bottom:4px}
-.behaviors-sub{font-size:14px;font-weight:500;color:var(--gray)}
-.program-card{
-  margin:0 20px 14px;background:var(--white);
-  border-radius:var(--r-xl);border:1px solid var(--stone);
-  padding:18px;cursor:pointer;display:flex;gap:16px;align-items:center;
-  -webkit-tap-highlight-color:transparent;transition:all .15s;
-}
-.program-card:active{background:var(--bone)}
-.program-icon{
-  width:56px;height:56px;border-radius:var(--r);
-  display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0;
-}
-.program-name{font-size:16px;font-weight:800;color:var(--ink);margin-bottom:4px}
-.program-desc{font-size:13px;font-weight:500;color:var(--gray);margin-bottom:8px;line-height:1.4}
-.program-tags{display:flex;gap:8px;flex-wrap:wrap}
-.program-tag{
-  background:var(--bone);border-radius:99px;padding:3px 10px;
-  font-size:11px;font-weight:700;color:var(--gray);
-}
-.program-arr{font-size:20px;color:var(--stone)}
-
-/* ══════════════════════════════════════
-   SCREEN: PROFILE
-══════════════════════════════════════ */
-#s-profile{background:var(--cream)}
-.profile-hero{
-  background:linear-gradient(150deg,var(--bark),#1A0C06);
-  padding:calc(var(--safe-top) + 20px) 24px 32px;text-align:center;flex-shrink:0;
-}
-.profile-avatar-lg{
-  width:80px;height:80px;border-radius:50%;
-  background:linear-gradient(135deg,var(--paw),var(--paw-l));
-  display:flex;align-items:center;justify-content:center;
-  font-size:34px;font-weight:900;color:white;
-  margin:0 auto 12px;border:3px solid rgba(255,255,255,.2);
-}
-.profile-name{font-family:'Instrument Serif',serif;font-size:24px;color:white;margin-bottom:4px}
-.profile-email{font-size:13px;font-weight:600;color:rgba(255,255,255,.45)}
-.profile-badge{
-  display:inline-flex;align-items:center;gap:6px;
-  background:rgba(255,215,0,.12);border:1px solid rgba(255,215,0,.25);
-  border-radius:99px;padding:5px 14px;margin-top:12px;
-  font-size:12px;font-weight:800;color:var(--gold);
-}
-.stats-row{display:flex;padding:0 20px;margin:20px 0;gap:12px}
-.stat-card{
-  flex:1;background:var(--white);border-radius:var(--r-lg);
-  border:1px solid var(--stone);padding:14px;text-align:center;
-}
-.stat-num{font-family:'Instrument Serif',serif;font-size:28px;color:var(--paw)}
-.stat-label{font-size:11px;font-weight:700;color:var(--gray);margin-top:2px;text-transform:uppercase;letter-spacing:.05em}
-.settings-section{padding:0 20px;margin-bottom:20px}
-.settings-label{font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--gray);margin-bottom:8px;padding-left:4px}
-.settings-item{
-  background:var(--white);border-radius:var(--r);padding:15px 16px;
-  display:flex;align-items:center;gap:12px;cursor:pointer;margin-bottom:2px;
-  -webkit-tap-highlight-color:transparent;transition:background .15s;
-}
-.settings-item:active{background:var(--bone)}
-.settings-item-icon{font-size:20px;width:28px;text-align:center}
-.settings-item-text{flex:1;font-size:14px;font-weight:700;color:var(--ink)}
-.settings-item-arr{font-size:16px;color:var(--stone)}
-.settings-item-badge{background:var(--paw);color:white;font-size:10px;font-weight:800;padding:2px 10px;border-radius:99px}
-
-/* ══════════════════════════════════════
-   SUCCESS TOAST
-══════════════════════════════════════ */
-.toast{
-  position:fixed;bottom:calc(80px + var(--safe-bot));left:50%;
-  transform:translateX(-50%) translateY(20px);
-  background:var(--ink);color:white;
-  font-size:14px;font-weight:700;
-  padding:12px 24px;border-radius:99px;
-  opacity:0;transition:all .3s;pointer-events:none;
-  white-space:nowrap;z-index:999;
-}
+/* TOAST */
+.toast{position:fixed;bottom:calc(80px + var(--safe-bot));left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:white;font-size:14px;font-weight:700;padding:12px 24px;border-radius:99px;opacity:0;transition:all .3s;pointer-events:none;white-space:nowrap;z-index:999}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
-/* ══════════════════════════════════════
-   SCREEN: WEEKLY PLAN
-══════════════════════════════════════ */
+/* SPLASH */
+#s-splash{background:linear-gradient(150deg,var(--paw) 0%,var(--paw-d) 100%);align-items:center;justify-content:center;gap:12px}
+.sp-paw{font-size:88px;animation:pulse 2s infinite}
+.sp-name{font-family:'Instrument Serif',serif;font-size:52px;color:white;letter-spacing:-.02em}
+.sp-tag{font-size:15px;font-weight:600;color:rgba(255,255,255,.7)}
+
+/* QUIZ */
+.qhdr{padding:16px 20px 8px;display:flex;align-items:center;gap:12px;flex-shrink:0}
+.qback{font-size:22px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.qprog{flex:1}
+.qstep{font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--gray);margin-bottom:6px}
+.qbody{flex:1;padding:16px 20px 24px;overflow-y:auto}
+.qq{font-family:'Instrument Serif',serif;font-size:28px;color:var(--ink);margin-bottom:8px;line-height:1.2}
+.qhint{font-size:14px;font-weight:500;color:var(--gray);margin-bottom:28px;line-height:1.5}
+.qchips{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:28px}
+.qinput{width:100%;background:var(--white);border:2px solid var(--stone);border-radius:var(--r);padding:16px;font-family:'Manrope',sans-serif;font-size:18px;font-weight:700;color:var(--ink);outline:none;transition:border-color .2s;margin-bottom:28px}
+.qinput:focus{border-color:var(--paw)}
+.qfoot{padding:16px 20px;padding-bottom:calc(16px + var(--safe-bot));flex-shrink:0;background:var(--cream)}
+
+/* GENERATING */
+#s-gen{background:linear-gradient(150deg,var(--bark) 0%,#1A0C06 100%);align-items:center;justify-content:center;padding:40px 28px;text-align:center}
+.gspinner{width:72px;height:72px;border-radius:50%;border:4px solid rgba(232,87,42,.2);border-top-color:var(--paw);animation:spin 1s linear infinite;margin:0 auto 24px}
+.gtitle{font-family:'Instrument Serif',serif;font-size:30px;color:white;margin-bottom:12px}
+.gsub{font-size:15px;font-weight:500;color:rgba(255,255,255,.45);line-height:1.65;max-width:280px;margin:0 auto 40px}
+.gsteps{text-align:left;width:100%;max-width:300px;margin:0 auto}
+.gstep{display:flex;align-items:center;gap:14px;padding:10px 0}
+.gdot{width:22px;height:22px;border-radius:50%;background:var(--paw);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;color:white;flex-shrink:0}
+.gdot.pend{background:rgba(255,255,255,.1)}
+.gdot.spin{background:transparent;border:2px solid var(--paw);animation:spin 1s linear infinite}
+.gtxt{font-size:14px;font-weight:600;color:rgba(255,255,255,.5)}
+.gtxt.done{color:rgba(255,255,255,.9)}
+
+/* HOME */
+#s-home{background:var(--cream)}
+.hhdr{padding:16px 20px 12px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+.hgreet{font-family:'Instrument Serif',serif;font-size:26px;color:var(--ink)}
+.hsub{font-size:13px;font-weight:600;color:var(--gray);margin-top:2px}
+.avatar{width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,var(--paw),var(--paw-l));display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;color:white;flex-shrink:0;cursor:pointer}
+.streak-card{margin:0 20px 20px;background:var(--bark);border-radius:var(--r-xl);padding:18px 20px;display:flex;align-items:center}
+.sleft{display:flex;align-items:center;gap:12px;flex:1}
+.sflame{font-size:38px}
+.snum{font-family:'Instrument Serif',serif;font-size:38px;color:var(--gold);line-height:1}
+.slbl{font-size:11px;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.08em}
+.sdiv{width:1px;height:44px;background:rgba(255,255,255,.08);margin:0 16px}
+.sdays{display:flex;gap:5px}
+.sd{width:22px;height:22px;border-radius:7px;background:var(--paw);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:white}
+.sd.off{background:rgba(255,255,255,.07);color:rgba(255,255,255,.3)}
+.today-card{margin:0 20px 24px;background:linear-gradient(140deg,var(--paw) 0%,var(--paw-d) 100%);border-radius:var(--r-xl);padding:20px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.tlbl{font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.6);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+.tsee{background:rgba(255,255,255,.18);padding:3px 10px;border-radius:99px;font-size:10px;cursor:pointer}
+.ttitle{font-family:'Instrument Serif',serif;font-size:24px;color:white;margin-bottom:6px}
+.tmeta{font-size:13px;font-weight:600;color:rgba(255,255,255,.7);margin-bottom:16px}
+.texs{margin-bottom:16px}
+.tex{font-size:13px;font-weight:600;color:rgba(255,255,255,.85);margin-bottom:5px;display:flex;align-items:center;gap:6px}
+.tex::before{content:'·';color:rgba(255,255,255,.4)}
+.tstart{background:rgba(255,255,255,.18);border-radius:var(--r);padding:12px;text-align:center;font-size:14px;font-weight:800;color:white}
+.lscroll{display:flex;gap:12px;padding:0 20px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.lscroll::-webkit-scrollbar{display:none}
+.lm{width:148px;flex-shrink:0;background:var(--white);border-radius:var(--r-lg);border:1px solid var(--stone);overflow:hidden;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.lm:active{opacity:.8}
+.lmthumb{height:90px;display:flex;align-items:center;justify-content:center;font-size:38px}
+.lmbody{padding:10px}
+.lmtitle{font-size:13px;font-weight:800;color:var(--ink);line-height:1.3;margin-bottom:4px}
+.lmmeta{font-size:11px;font-weight:600;color:var(--gray)}
+.bhbtn{margin:0 20px;background:var(--white);border:1px solid var(--stone);border-radius:var(--r-lg);padding:16px 18px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.bhbtn:active{background:var(--bone)}
+.bhleft{display:flex;align-items:center;gap:12px}
+.bhicon{font-size:28px}
+.bhtitle{font-size:15px;font-weight:800;color:var(--ink)}
+.bhsub{font-size:12px;font-weight:600;color:var(--gray);margin-top:2px}
+.bharr{font-size:20px;color:var(--stone)}
+
+/* LESSON */
+#s-lesson{background:var(--cream)}
+.lhero{height:260px;background:linear-gradient(150deg,var(--bark),#1A0C06);display:flex;flex-direction:column;position:relative;flex-shrink:0;overflow:hidden}
+.lback{position:absolute;top:calc(var(--safe-top) + 12px);left:20px;width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;color:white;z-index:2;-webkit-tap-highlight-color:transparent}
+.lillus{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:52px 16px 16px}
+.licard{background:rgba(255,255,255,.1);border-radius:20px;padding:14px 18px;width:100%;text-align:center;border:1px solid rgba(255,255,255,.15)}
+.liemoji{font-size:52px;margin-bottom:6px;display:block}
+.libreed{font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.5);margin-bottom:3px}
+.lititle{font-size:14px;font-weight:800;color:white;margin-bottom:6px}
+.litags{display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
+.litag{background:rgba(255,255,255,.12);border-radius:99px;padding:3px 10px;font-size:10px;font-weight:700;color:rgba(255,255,255,.75)}
+.lifocus{background:rgba(232,87,42,.25);border:1px solid rgba(232,87,42,.4);border-radius:14px;padding:8px 14px;width:100%;text-align:center}
+.lifocus-lbl{font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,107,53,.9);margin-bottom:2px}
+.lifocus-txt{font-size:12px;font-weight:700;color:white}
+.lmetarow{padding:14px 20px;display:flex;gap:10px;border-bottom:1px solid var(--stone);flex-shrink:0}
+.lbadge{background:var(--bone);border-radius:99px;padding:6px 14px;font-size:11px;font-weight:700;color:var(--gray);display:flex;align-items:center;gap:4px}
+.lbody{padding:20px;flex:1;overflow-y:auto}
+.lstitle{font-size:15px;font-weight:800;color:var(--ink);margin:20px 0 14px}
+.stepitem{display:flex;gap:14px;margin-bottom:18px;align-items:flex-start}
+.stepnum{width:28px;height:28px;border-radius:50%;background:var(--warm);border:2px solid var(--paw);color:var(--paw);font-size:13px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px}
+.steptitle{font-size:14px;font-weight:800;color:var(--ink);margin-bottom:4px}
+.stepdesc{font-size:13px;font-weight:500;color:var(--gray);line-height:1.6}
+.tipbox{background:#FFFBEA;border:1.5px solid #FDE68A;border-radius:var(--r);padding:16px;margin:20px 0 24px}
+.tiptitle{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#92400E;margin-bottom:6px}
+.tiptext{font-size:13px;font-weight:600;color:#78350F;line-height:1.6}
+.lfoot{padding:16px 20px;padding-bottom:calc(16px + var(--safe-bot));flex-shrink:0;background:var(--cream)}
+
+/* BEHAVIORS */
+#s-behaviors{background:var(--cream)}
+.behhdr{padding:20px 20px 16px;flex-shrink:0}
+.behtitle{font-family:'Instrument Serif',serif;font-size:28px;color:var(--ink);margin-bottom:4px}
+.behsub{font-size:14px;font-weight:500;color:var(--gray)}
+.pcard{margin:0 20px 14px;background:var(--white);border-radius:var(--r-xl);border:1px solid var(--stone);padding:18px;cursor:pointer;display:flex;gap:16px;align-items:center;-webkit-tap-highlight-color:transparent;transition:all .15s}
+.pcard:active{background:var(--bone)}
+.picon{width:56px;height:56px;border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0}
+.pname{font-size:16px;font-weight:800;color:var(--ink);margin-bottom:4px}
+.pdesc{font-size:13px;font-weight:500;color:var(--gray);margin-bottom:8px;line-height:1.4}
+.ptags{display:flex;gap:8px;flex-wrap:wrap}
+.ptag{background:var(--bone);border-radius:99px;padding:3px 10px;font-size:11px;font-weight:700;color:var(--gray)}
+.parr{font-size:20px;color:var(--stone)}
+
+/* PLAN */
 #s-plan{background:var(--cream)}
-.plan-header{padding:20px 20px 16px;flex-shrink:0}
-.plan-title{font-family:'Instrument Serif',serif;font-size:28px;color:var(--ink);margin-bottom:4px}
-.plan-sub{font-size:14px;font-weight:500;color:var(--gray)}
-.week-tabs{display:flex;gap:8px;padding:0 20px 16px;overflow-x:auto;scrollbar-width:none;flex-shrink:0}
-.week-tabs::-webkit-scrollbar{display:none}
-.week-tab{
-  flex-shrink:0;padding:8px 18px;border-radius:99px;
-  font-size:13px;font-weight:800;cursor:pointer;
-  background:var(--bone);color:var(--gray);border:1.5px solid var(--stone);
-  transition:all .15s;-webkit-tap-highlight-color:transparent;
-}
-.week-tab.active{background:var(--paw);color:white;border-color:var(--paw)}
-.days-list{padding:0 20px;flex:1;overflow-y:auto;padding-bottom:20px}
-.day-card{
-  background:var(--white);border-radius:var(--r-lg);border:1px solid var(--stone);
-  padding:16px 18px;margin-bottom:12px;cursor:pointer;
-  display:flex;align-items:center;gap:14px;
-  transition:all .15s;-webkit-tap-highlight-color:transparent;
-}
-.day-card:active{background:var(--bone)}
-.day-card.today{border-color:var(--paw);border-width:2px;background:var(--warm)}
-.day-card.completed{background:var(--bone);opacity:.75}
-.day-num{
-  width:42px;height:42px;border-radius:50%;flex-shrink:0;
-  display:flex;align-items:center;justify-content:center;
-  font-size:15px;font-weight:900;
-  background:var(--bone);color:var(--gray);
-}
-.day-card.today .day-num{background:var(--paw);color:white}
-.day-card.completed .day-num{background:var(--success);color:white}
-.day-info{flex:1}
-.day-title{font-size:15px;font-weight:800;color:var(--ink);margin-bottom:3px}
-.day-card.completed .day-title{color:var(--gray)}
-.day-meta{font-size:12px;font-weight:600;color:var(--gray)}
-.day-badge{
-  font-size:11px;font-weight:800;padding:3px 10px;border-radius:99px;flex-shrink:0;
-}
-.day-badge.today-badge{background:var(--paw);color:white}
-.day-badge.done-badge{background:var(--success);color:white}
-.day-badge.locked-badge{background:var(--stone);color:var(--gray)}
-.week-summary{
-  background:var(--bark);border-radius:var(--r-lg);padding:16px 18px;
-  margin-bottom:16px;display:flex;align-items:center;gap:14px;
-}
-.ws-icon{font-size:28px}
-.ws-title{font-size:15px;font-weight:800;color:white;margin-bottom:3px}
-.ws-desc{font-size:12px;font-weight:600;color:rgba(255,255,255,.5)}
+.planhdr{padding:20px 20px 16px;flex-shrink:0}
+.plantitle{font-family:'Instrument Serif',serif;font-size:28px;color:var(--ink);margin-bottom:4px}
+.plansub{font-size:14px;font-weight:500;color:var(--gray)}
+.wtabs{display:flex;gap:8px;padding:0 20px 16px;overflow-x:auto;scrollbar-width:none;flex-shrink:0}
+.wtabs::-webkit-scrollbar{display:none}
+.wtab{flex-shrink:0;padding:8px 18px;border-radius:99px;font-size:13px;font-weight:800;cursor:pointer;background:var(--bone);color:var(--gray);border:1.5px solid var(--stone);transition:all .15s;-webkit-tap-highlight-color:transparent}
+.wtab.act{background:var(--paw);color:white;border-color:var(--paw)}
+.dlist{padding:0 20px;flex:1;overflow-y:auto;padding-bottom:20px}
+.dcard{background:var(--white);border-radius:var(--r-lg);border:1px solid var(--stone);padding:16px 18px;margin-bottom:12px;cursor:pointer;display:flex;align-items:center;gap:14px;transition:all .15s;-webkit-tap-highlight-color:transparent}
+.dcard:active{background:var(--bone)}
+.dcard.today{border-color:var(--paw);border-width:2px;background:var(--warm)}
+.dcard.done{background:var(--bone)}
+.dnum{width:42px;height:42px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:900;background:var(--bone);color:var(--gray)}
+.dnum.tn{background:var(--paw);color:white}
+.dnum.dn{background:var(--success);color:white}
+.dinfo{flex:1}
+.dtitle{font-size:15px;font-weight:800;color:var(--ink);margin-bottom:3px}
+.dtitle.muted{color:var(--gray)}
+.dmeta{font-size:12px;font-weight:600;color:var(--gray)}
+.dbadge{font-size:11px;font-weight:800;padding:3px 10px;border-radius:99px;flex-shrink:0}
+.db-t{background:var(--paw);color:white}
+.db-d{background:var(--success);color:white}
+.db-l{background:var(--stone);color:var(--gray)}
+.wsum{background:var(--bark);border-radius:var(--r-lg);padding:16px 18px;margin-bottom:16px;display:flex;align-items:center;gap:14px}
+.wsicon{font-size:28px}
+.wstitle{font-size:15px;font-weight:800;color:white;margin-bottom:3px}
+.wsdesc{font-size:12px;font-weight:600;color:rgba(255,255,255,.5)}
 
-/* ══════════════════════════════════════
-   RESPONSIVE — DESKTOP & TABLET
-══════════════════════════════════════ */
-
-/* Desktop wrapper */
-@media(min-width:768px){
-  body{
-    background:#E8E0D4;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    justify-content:flex-start;
-    padding:32px 24px 48px;
-    min-height:100vh;
-    overflow:auto;
-  }
-  #app{
-    width:390px;
-    height:844px;
-    border-radius:52px;
-    box-shadow:0 32px 80px rgba(0,0,0,.28),inset 0 0 0 2px rgba(255,255,255,.3);
-    overflow:hidden;
-    border:10px solid #1A1A1A;
-    flex-shrink:0;
-  }
-  .desktop-header{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    width:390px;
-    margin-bottom:20px;
-  }
-  .desktop-logo{
-    font-family:'Instrument Serif',serif;
-    font-size:22px;
-    color:#2C1A0E;
-    font-weight:400;
-  }
-  .desktop-logo span{color:var(--paw)}
-  .desktop-tagline{
-    font-size:12px;font-weight:700;
-    color:#999;letter-spacing:.06em;
-    text-transform:uppercase;
-  }
-  .desktop-footer{
-    width:390px;
-    margin-top:20px;
-    text-align:center;
-    font-size:11px;
-    font-weight:600;
-    color:#AAA;
-    letter-spacing:.04em;
-  }
-}
-
-/* Mobile — full screen */
-@media(max-width:767px){
-  body{padding:0;background:var(--cream)}
-  #app{
-    width:100%;
-    height:100vh;
-    height:100dvh;
-    border-radius:0;
-    border:none;
-    box-shadow:none;
-  }
-  .desktop-header,.desktop-footer{display:none}
-}
-
-/* Tablet adjustment */
-@media(min-width:768px) and (max-width:1023px){
-  body{padding:20px 16px 40px}
-}
-
-/* Large desktop — side panel */
-@media(min-width:1100px){
-  body{
-    flex-direction:row;
-    align-items:flex-start;
-    justify-content:center;
-    gap:48px;
-    padding:48px 40px;
-  }
-  .desktop-sidebar{
-    display:flex;
-    flex-direction:column;
-    gap:20px;
-    width:280px;
-    flex-shrink:0;
-    padding-top:80px;
-  }
-  .sidebar-card{
-    background:white;
-    border-radius:20px;
-    padding:20px;
-    box-shadow:0 2px 16px rgba(0,0,0,.06);
-  }
-  .sidebar-title{
-    font-size:11px;font-weight:800;
-    letter-spacing:.1em;text-transform:uppercase;
-    color:#AAA;margin-bottom:12px;
-  }
-  .sidebar-stat{
-    display:flex;align-items:center;gap:10px;
-    padding:8px 0;border-bottom:1px solid #F0EDE8;
-  }
-  .sidebar-stat:last-child{border-bottom:none}
-  .sidebar-stat-icon{font-size:20px;width:28px;text-align:center}
-  .sidebar-stat-label{font-size:13px;font-weight:600;color:#666;flex:1}
-  .sidebar-stat-val{font-size:14px;font-weight:800;color:#1A1A1A}
-  .sidebar-feature{
-    display:flex;align-items:flex-start;gap:10px;padding:6px 0;
-  }
-  .sf-icon{font-size:18px;flex-shrink:0;margin-top:1px}
-  .sf-text{font-size:13px;font-weight:600;color:#666;line-height:1.4}
-}
-
-@media(min-width:1100px){
-  .desktop-header,.desktop-footer{display:none}
-  .desktop-sidebar{display:flex}
-}
-
-@media(max-width:1099px){
-  .desktop-sidebar{display:none}
-}
+/* PROFILE */
+#s-profile{background:var(--cream)}
+.phero{background:linear-gradient(150deg,var(--bark),#1A0C06);padding:calc(var(--safe-top) + 20px) 24px 32px;text-align:center;flex-shrink:0}
+.pav{width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,var(--paw),var(--paw-l));display:flex;align-items:center;justify-content:center;font-size:34px;margin:0 auto 12px;border:3px solid rgba(255,255,255,.2)}
+.pname{font-family:'Instrument Serif',serif;font-size:24px;color:white;margin-bottom:4px}
+.pemail{font-size:13px;font-weight:600;color:rgba(255,255,255,.45)}
+.pbadge{display:inline-flex;align-items:center;gap:6px;background:rgba(255,215,0,.12);border:1px solid rgba(255,215,0,.25);border-radius:99px;padding:5px 14px;margin-top:12px;font-size:12px;font-weight:800;color:var(--gold)}
+.statsrow{display:flex;padding:0 20px;margin:20px 0;gap:12px}
+.statcard{flex:1;background:var(--white);border-radius:var(--r-lg);border:1px solid var(--stone);padding:14px;text-align:center}
+.statnum{font-family:'Instrument Serif',serif;font-size:28px;color:var(--paw)}
+.statlbl{font-size:11px;font-weight:700;color:var(--gray);margin-top:2px;text-transform:uppercase;letter-spacing:.05em}
+.setsec{padding:0 20px;margin-bottom:20px}
+.setlbl{font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--gray);margin-bottom:8px;padding-left:4px}
+.setitem{background:var(--white);border-radius:var(--r);padding:15px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;margin-bottom:2px;-webkit-tap-highlight-color:transparent;transition:background .15s}
+.setitem:active{background:var(--bone)}
+.seticon{font-size:20px;width:28px;text-align:center}
+.settext{flex:1;font-size:14px;font-weight:700;color:var(--ink)}
+.setarr{font-size:16px;color:var(--stone)}
 </style>
 </head>
 <body>
-<!-- Desktop header (only shows on desktop) -->
-<div class="desktop-header">
-  <div class="desktop-logo">Paw<span>Path</span> 🐾</div>
-  <div class="desktop-tagline">AI Dog Training</div>
+
+<!-- Desktop Header -->
+<div class="dsk-hdr dsk">
+  <div class="dsk-logo">Paw<span>Path</span> 🐾</div>
+  <div class="dsk-tag">AI Dog Training</div>
 </div>
 
-<!-- Desktop sidebar (only shows on large screens) -->
-<div class="desktop-sidebar">
-  <div class="sidebar-card">
-    <div class="sidebar-title">Your Progress</div>
-    <div class="sidebar-stat"><span class="sidebar-stat-icon">🔥</span><span class="sidebar-stat-label">Current Streak</span><span class="sidebar-stat-val">7 days</span></div>
-    <div class="sidebar-stat"><span class="sidebar-stat-icon">✅</span><span class="sidebar-stat-label">Lessons Done</span><span class="sidebar-stat-val">23</span></div>
-    <div class="sidebar-stat"><span class="sidebar-stat-icon">📅</span><span class="sidebar-stat-label">Week</span><span class="sidebar-stat-val">1 of 4</span></div>
-    <div class="sidebar-stat"><span class="sidebar-stat-icon">🏆</span><span class="sidebar-stat-label">Programs</span><span class="sidebar-stat-val">2 active</span></div>
+<!-- Desktop Sidebar -->
+<div class="dsk-sidebar dsk">
+  <div class="sc">
+    <div class="sc-ttl">Your Progress</div>
+    <div class="sc-row"><span class="sc-icon">🔥</span><span class="sc-lbl">Streak</span><span class="sc-val" id="sb-streak">0 days</span></div>
+    <div class="sc-row"><span class="sc-icon">✅</span><span class="sc-lbl">Lessons Done</span><span class="sc-val" id="sb-done">0</span></div>
+    <div class="sc-row"><span class="sc-icon">📅</span><span class="sc-lbl">Current Week</span><span class="sc-val" id="sb-week">Week 1</span></div>
   </div>
-  <div class="sidebar-card">
-    <div class="sidebar-title">What's Included</div>
-    <div class="sidebar-feature"><span class="sf-icon">🤖</span><span class="sf-text">AI-personalized 4-week training plan</span></div>
-    <div class="sidebar-feature"><span class="sf-icon">🎥</span><span class="sf-text">30+ expert lessons with step-by-step instructions</span></div>
-    <div class="sidebar-feature"><span class="sf-icon">🔧</span><span class="sf-text">5 behavior fix programs (7–14 days)</span></div>
-    <div class="sidebar-feature"><span class="sf-icon">🔥</span><span class="sf-text">Daily streak tracking & reminders</span></div>
-    <div class="sidebar-feature"><span class="sf-icon">🎵</span><span class="sf-text">Built-in clicker tool</span></div>
+  <div class="sc">
+    <div class="sc-ttl">What's Included</div>
+    <div class="sc-feat"><span class="sc-feat-i">🤖</span><span class="sc-feat-t">AI-personalized 4-week training plan</span></div>
+    <div class="sc-feat"><span class="sc-feat-i">📋</span><span class="sc-feat-t">30+ step-by-step expert lessons</span></div>
+    <div class="sc-feat"><span class="sc-feat-i">🔧</span><span class="sc-feat-t">5 behavior fix programs (7–14 days)</span></div>
+    <div class="sc-feat"><span class="sc-feat-i">🔥</span><span class="sc-feat-t">Daily streak & progress unlock system</span></div>
+    <div class="sc-feat"><span class="sc-feat-i">🎵</span><span class="sc-feat-t">Built-in clicker tool</span></div>
   </div>
-  <div class="sidebar-card" style="background:linear-gradient(135deg,#2C1A0E,#4A2A10);color:white">
-    <div class="sidebar-title" style="color:rgba(255,255,255,.4)">Need Help?</div>
-    <div style="font-size:13px;font-weight:600;color:rgba(255,255,255,.7);line-height:1.6">Access your members area for support, manuals, and updates.</div>
+  <div class="sc" style="background:linear-gradient(135deg,#2C1A0E,#4A2A10)">
+    <div class="sc-ttl" style="color:rgba(255,255,255,.4)">Need Help?</div>
+    <div style="font-size:12px;font-weight:600;color:rgba(255,255,255,.65);line-height:1.6">Access your members area for support, manuals, and updates.</div>
   </div>
 </div>
 
 <div id="app">
 
-<!-- ══════════════════════════════════
-     SPLASH
-══════════════════════════════════ -->
+<!-- SPLASH -->
 <div class="screen active" id="s-splash">
   <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px">
-    <div class="splash-paw">🐾</div>
-    <div class="splash-name">PawPath</div>
-    <div class="splash-tag">AI Dog Training</div>
+    <div class="sp-paw">🐾</div>
+    <div class="sp-name">PawPath</div>
+    <div class="sp-tag">AI Dog Training</div>
   </div>
 </div>
 
-<!-- ══════════════════════════════════
-     ACCESS — Hotmart key validation
-══════════════════════════════════ -->
-<div class="screen" id="s-access">
-  <div class="access-logo">🐾</div>
-  <div class="access-title">Welcome to PawPath</div>
-  <div class="access-sub">Enter your access code from the members area to unlock your AI dog training app.</div>
-  <div class="access-box" style="width:100%">
-    <div class="access-label">Your Access Code</div>
-    <input class="access-input" id="access-code-input" type="text" placeholder="e.g. PAWPATH-XXXXX" autocomplete="off" autocapitalize="characters">
-  </div>
-  <button class="btn" onclick="validateAccess()" style="width:100%">🔓 Unlock My App</button>
-  <div class="access-note">Your access code was sent to your email after purchase.<br>Check your Hotmart receipt if you can't find it.</div>
-</div>
-
-<!-- ══════════════════════════════════
-     QUIZ 1 — Dog name
-══════════════════════════════════ -->
+<!-- QUIZ 1 -->
 <div class="screen" id="s-quiz1">
-  <div class="status-bar"><span id="time1">9:41</span><div class="status-right"><span>●●●</span><span>🔋</span></div></div>
-  <div class="quiz-header">
-    <span class="quiz-back" onclick="goTo('s-access')">←</span>
-    <div class="quiz-prog-wrap">
-      <div class="quiz-step-label">Step 1 of 5</div>
-      <div class="prog-bar"><div class="prog-fill" style="width:20%"></div></div>
-    </div>
+  <div class="sb"><span>9:41</span><div class="sb-r"><span>●●●</span><span>🔋</span></div></div>
+  <div class="qhdr">
+    <span class="qback">🐾</span>
+    <div class="qprog"><div class="qstep">Step 1 of 4</div><div class="prog"><div class="prog-f" style="width:25%"></div></div></div>
   </div>
-  <div class="quiz-body anim-fade">
-    <div class="quiz-q">What's your dog's name? 🐶</div>
-    <div class="quiz-hint">We'll personalize your entire plan around them.</div>
-    <input class="quiz-input-field" id="dog-name" placeholder="e.g. Buddy, Max, Luna..." value="">
+  <div class="qbody fu">
+    <div class="qq">What's your dog's name? 🐶</div>
+    <div class="qhint">We'll personalize your entire plan around them.</div>
+    <input class="qinput" id="dog-name" placeholder="e.g. Buddy, Max, Luna...">
   </div>
-  <div class="quiz-footer">
-    <button class="btn" onclick="saveDogName()">Continue →</button>
-  </div>
+  <div class="qfoot"><button class="btn" onclick="saveName()">Continue →</button></div>
 </div>
 
-<!-- ══════════════════════════════════
-     QUIZ 2 — Breed & Age
-══════════════════════════════════ -->
+<!-- QUIZ 2 -->
 <div class="screen" id="s-quiz2">
-  <div class="status-bar"><span>9:41</span><div class="status-right"><span>●●●</span><span>🔋</span></div></div>
-  <div class="quiz-header">
-    <span class="quiz-back" onclick="goTo('s-quiz1')">←</span>
-    <div class="quiz-prog-wrap">
-      <div class="quiz-step-label">Step 2 of 5</div>
-      <div class="prog-bar"><div class="prog-fill" style="width:40%"></div></div>
+  <div class="sb"><span>9:41</span><div class="sb-r"><span>●●●</span><span>🔋</span></div></div>
+  <div class="qhdr">
+    <span class="qback" onclick="goTo('s-quiz1')">←</span>
+    <div class="qprog"><div class="qstep">Step 2 of 4</div><div class="prog"><div class="prog-f" style="width:50%"></div></div></div>
+  </div>
+  <div class="qbody fu">
+    <div class="qq">Tell us about <span id="q2n">your dog</span> 🦴</div>
+    <div class="qhint">The AI adapts training to breed and age.</div>
+    <label style="font-size:12px;font-weight:700;color:var(--gray);display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em">Breed</label>
+    <input class="qinput" id="dog-breed" placeholder="e.g. Golden Retriever, Labrador...">
+    <div style="display:flex;gap:12px">
+      <div style="flex:1"><label style="font-size:12px;font-weight:700;color:var(--gray);display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em">Age</label><input class="qinput" id="dog-age" placeholder="e.g. 8 months"></div>
+      <div style="flex:1"><label style="font-size:12px;font-weight:700;color:var(--gray);display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em">Weight</label><input class="qinput" id="dog-weight" placeholder="e.g. 35 lbs"></div>
     </div>
   </div>
-  <div class="quiz-body anim-fade">
-    <div class="quiz-q">Tell us about <span id="dog-name-q2">your dog</span> 🦴</div>
-    <div class="quiz-hint">The AI adapts the plan to breed characteristics and age.</div>
-    <div style="margin-bottom:16px">
-      <label style="font-size:12px;font-weight:700;color:var(--gray);display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em">Breed</label>
-      <input class="quiz-input-field" style="margin-bottom:0" id="dog-breed" placeholder="e.g. Golden Retriever, Labrador...">
-    </div>
-    <div style="display:flex;gap:12px;margin-bottom:28px">
-      <div style="flex:1">
-        <label style="font-size:12px;font-weight:700;color:var(--gray);display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em">Age</label>
-        <input class="quiz-input-field" style="margin-bottom:0" id="dog-age" placeholder="e.g. 8 months">
-      </div>
-      <div style="flex:1">
-        <label style="font-size:12px;font-weight:700;color:var(--gray);display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em">Weight</label>
-        <input class="quiz-input-field" style="margin-bottom:0" id="dog-weight" placeholder="e.g. 35 lbs">
-      </div>
-    </div>
-  </div>
-  <div class="quiz-footer">
-    <button class="btn" onclick="goTo('s-quiz3')">Continue →</button>
-  </div>
+  <div class="qfoot"><button class="btn" onclick="goTo('s-quiz3')">Continue →</button></div>
 </div>
 
-<!-- ══════════════════════════════════
-     QUIZ 3 — Problems
-══════════════════════════════════ -->
+<!-- QUIZ 3 -->
 <div class="screen" id="s-quiz3">
-  <div class="status-bar"><span>9:41</span><div class="status-right"><span>●●●</span><span>🔋</span></div></div>
-  <div class="quiz-header">
-    <span class="quiz-back" onclick="goTo('s-quiz2')">←</span>
-    <div class="quiz-prog-wrap">
-      <div class="quiz-step-label">Step 3 of 5</div>
-      <div class="prog-bar"><div class="prog-fill" style="width:60%"></div></div>
-    </div>
+  <div class="sb"><span>9:41</span><div class="sb-r"><span>●●●</span><span>🔋</span></div></div>
+  <div class="qhdr">
+    <span class="qback" onclick="goTo('s-quiz2')">←</span>
+    <div class="qprog"><div class="qstep">Step 3 of 4</div><div class="prog"><div class="prog-f" style="width:75%"></div></div></div>
   </div>
-  <div class="quiz-body anim-fade">
-    <div class="quiz-q">What problems does <span id="dog-name-q3">your dog</span> have? 🔧</div>
-    <div class="quiz-hint">Select all that apply — the AI will prioritize these first.</div>
-    <div class="quiz-chips">
+  <div class="qbody fu">
+    <div class="qq">What problems does <span id="q3n">your dog</span> have? 🔧</div>
+    <div class="qhint">Select all that apply — no judgment here.</div>
+    <div class="qchips">
       <span class="chip sel" onclick="this.classList.toggle('sel')">🔊 Excessive Barking</span>
       <span class="chip sel" onclick="this.classList.toggle('sel')">💪 Leash Pulling</span>
       <span class="chip" onclick="this.classList.toggle('sel')">⬆️ Jumping on People</span>
@@ -1137,27 +372,20 @@ body{
       <span class="chip" onclick="this.classList.toggle('sel')">✅ No major problems</span>
     </div>
   </div>
-  <div class="quiz-footer">
-    <button class="btn" onclick="goTo('s-quiz4')">Continue →</button>
-  </div>
+  <div class="qfoot"><button class="btn" onclick="saveProblems()">Continue →</button></div>
 </div>
 
-<!-- ══════════════════════════════════
-     QUIZ 4 — Goals & Time
-══════════════════════════════════ -->
+<!-- QUIZ 4 -->
 <div class="screen" id="s-quiz4">
-  <div class="status-bar"><span>9:41</span><div class="status-right"><span>●●●</span><span>🔋</span></div></div>
-  <div class="quiz-header">
-    <span class="quiz-back" onclick="goTo('s-quiz3')">←</span>
-    <div class="quiz-prog-wrap">
-      <div class="quiz-step-label">Step 4 of 5</div>
-      <div class="prog-bar"><div class="prog-fill" style="width:80%"></div></div>
-    </div>
+  <div class="sb"><span>9:41</span><div class="sb-r"><span>●●●</span><span>🔋</span></div></div>
+  <div class="qhdr">
+    <span class="qback" onclick="goTo('s-quiz3')">←</span>
+    <div class="qprog"><div class="qstep">Step 4 of 4</div><div class="prog"><div class="prog-f" style="width:100%"></div></div></div>
   </div>
-  <div class="quiz-body anim-fade">
-    <div class="quiz-q">What are your training goals? 🎯</div>
-    <div class="quiz-hint">The plan focuses on what matters most to you.</div>
-    <div class="quiz-chips" style="margin-bottom:20px">
+  <div class="qbody fu">
+    <div class="qq">What are your training goals? 🎯</div>
+    <div class="qhint">The plan focuses on what matters most to you.</div>
+    <div class="qchips" style="margin-bottom:20px">
       <span class="chip sel" onclick="this.classList.toggle('sel')">🎯 Learn Basic Commands</span>
       <span class="chip sel" onclick="this.classList.toggle('sel')">🦮 Walk Nicely on Leash</span>
       <span class="chip" onclick="this.classList.toggle('sel')">🏠 Improve Home Manners</span>
@@ -1165,931 +393,514 @@ body{
       <span class="chip" onclick="this.classList.toggle('sel')">⭐ Learn Fun Tricks</span>
       <span class="chip" onclick="this.classList.toggle('sel')">😌 Stay Calm & Relaxed</span>
     </div>
-    <div style="margin-bottom:8px">
-      <div style="font-size:13px;font-weight:700;color:var(--gray);margin-bottom:12px">Daily training time available:</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <span class="chip" onclick="selectOne(this,'.time-chip')" style="flex:1;justify-content:center">5 min</span>
-        <span class="chip sel time-chip" onclick="selectOne(this,'.time-chip')" style="flex:1;justify-content:center">15 min</span>
-        <span class="chip time-chip" onclick="selectOne(this,'.time-chip')" style="flex:1;justify-content:center">30 min</span>
-        <span class="chip time-chip" onclick="selectOne(this,'.time-chip')" style="flex:1;justify-content:center">45+ min</span>
-      </div>
+    <div style="font-size:13px;font-weight:700;color:var(--gray);margin-bottom:10px">Daily training time:</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <span class="chip tc" onclick="selTime(this)">5 min</span>
+      <span class="chip sel tc" onclick="selTime(this)">15 min</span>
+      <span class="chip tc" onclick="selTime(this)">30 min</span>
+      <span class="chip tc" onclick="selTime(this)">45+ min</span>
     </div>
   </div>
-  <div class="quiz-footer">
-    <button class="btn" onclick="startGenerating()">🤖 Generate My Plan</button>
-  </div>
+  <div class="qfoot"><button class="btn" onclick="startGen()">🤖 Generate My Plan</button></div>
 </div>
 
-<!-- ══════════════════════════════════
-     GENERATING
-══════════════════════════════════ -->
-<div class="screen" id="s-generating">
+<!-- GENERATING -->
+<div class="screen" id="s-gen">
   <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 28px">
-    <div class="gen-spinner"></div>
-    <div class="gen-title">Building <span id="gen-dog-name">Buddy</span>'s Plan</div>
-    <div class="gen-sub">Our AI is analyzing breed behavior patterns and creating a training plan just for them.</div>
-    <div class="gen-steps">
-      <div class="gen-step"><div class="gen-dot" id="gd1">✓</div><span class="gen-text done">Analyzing breed characteristics</span></div>
-      <div class="gen-step"><div class="gen-dot" id="gd2">✓</div><span class="gen-text done">Mapping behavior patterns</span></div>
-      <div class="gen-step"><div class="gen-dot spin" id="gd3"></div><span class="gen-text" id="gt3">Generating 4-week schedule</span></div>
-      <div class="gen-step"><div class="gen-dot pending" id="gd4"></div><span class="gen-text" id="gt4">Personalizing daily exercises</span></div>
+    <div class="gspinner"></div>
+    <div class="gtitle">Building <span id="gen-name">Buddy</span>'s Plan</div>
+    <div class="gsub">Our AI is analyzing breed behavior patterns and creating a plan just for them.</div>
+    <div class="gsteps">
+      <div class="gstep"><div class="gdot" id="gd1">✓</div><span class="gtxt done">Analyzing breed characteristics</span></div>
+      <div class="gstep"><div class="gdot" id="gd2">✓</div><span class="gtxt done">Mapping behavior patterns</span></div>
+      <div class="gstep"><div class="gdot spin" id="gd3"></div><span class="gtxt" id="gt3">Generating 4-week schedule</span></div>
+      <div class="gstep"><div class="gdot pend" id="gd4"></div><span class="gtxt" id="gt4">Personalizing daily exercises</span></div>
     </div>
   </div>
 </div>
 
-<!-- ══════════════════════════════════
-     HOME
-══════════════════════════════════ -->
+<!-- HOME -->
 <div class="screen" id="s-home">
-  <div class="status-bar"><span id="home-time">9:41</span><div class="status-right"><span>●●●</span><span>🔋</span></div></div>
-
-  <div class="home-header anim-fade" style="flex-shrink:0">
-    <div>
-      <div class="home-greeting">Good morning! 👋</div>
-      <div class="home-sub">Ready to train <span id="home-dog-name">Buddy</span>?</div>
-    </div>
-    <div class="avatar" onclick="goTo('s-profile')">S</div>
+  <div class="sb"><span id="htime">9:41</span><div class="sb-r"><span>●●●</span><span>🔋</span></div></div>
+  <div class="hhdr fu" style="flex-shrink:0">
+    <div><div class="hgreet">Good morning! 👋</div><div class="hsub">Ready to train <span id="h-dog-name">Buddy</span>?</div></div>
+    <div class="avatar" onclick="goTo('s-profile')">🐾</div>
   </div>
-
-  <!-- Streak -->
-  <div class="streak-card anim-fade-1" style="flex-shrink:0">
-    <div class="streak-left">
-      <div class="streak-flame">🔥</div>
-      <div>
-        <div class="streak-num">7</div>
-        <div class="streak-info-label">Day Streak</div>
-      </div>
+  <div class="streak-card fu1" style="flex-shrink:0">
+    <div class="sleft">
+      <div class="sflame">🔥</div>
+      <div><div class="snum" id="h-streak">0</div><div class="slbl">Day Streak</div></div>
     </div>
-    <div class="streak-divider"></div>
+    <div class="sdiv"></div>
     <div style="margin-left:16px">
-      <div class="streak-info-label" style="margin-bottom:6px">This Week</div>
-      <div class="streak-days">
-        <div class="sd">M</div><div class="sd">T</div><div class="sd">W</div>
-        <div class="sd">T</div><div class="sd">F</div>
-        <div class="sd off">S</div><div class="sd off">S</div>
+      <div class="slbl" style="margin-bottom:6px">This Week</div>
+      <div class="sdays" id="sdays-row">
+        <div class="sd">M</div><div class="sd off">T</div><div class="sd off">W</div>
+        <div class="sd off">T</div><div class="sd off">F</div><div class="sd off">S</div><div class="sd off">S</div>
       </div>
     </div>
   </div>
-
-  <!-- Today's AI Plan -->
-  <div style="padding:0 20px;margin-bottom:8px;flex-shrink:0">
-    <div class="section-title anim-fade-1">Today's AI Plan 🎯</div>
+  <div style="padding:0 20px;margin-bottom:8px;flex-shrink:0"><div class="sec-ttl fu1">Today's AI Plan 🎯</div></div>
+  <div class="today-card fu2" id="today-card" onclick="openTodayLesson()" style="flex-shrink:0">
+    <div class="tlbl">
+      <span id="t-day-lbl">Day 1 of 28 · Week 1</span>
+      <span class="tsee" onclick="event.stopPropagation();openPlan()">See all →</span>
+    </div>
+    <div class="ttitle" id="t-title">Name Recognition & Focus</div>
+    <div class="tmeta" id="t-meta">⏱ 15 min · 3 exercises</div>
+    <div class="texs" id="t-exs">
+      <div class="tex">Name game</div>
+      <div class="tex">Eye contact</div>
+      <div class="tex">Sit intro</div>
+    </div>
+    <div class="tstart">Start Today's Training →</div>
   </div>
-  <div class="today-card anim-fade-2" onclick="openLesson('leash_training','Leash Confidence Walk',1,7)" style="flex-shrink:0">
-    <div class="today-label" style="display:flex;justify-content:space-between;align-items:center">
-      <span>Day 7 of 28 · Week 1</span>
-      <span onclick="event.stopPropagation();openPlanScreen()" style="background:rgba(255,255,255,.18);padding:2px 10px;border-radius:99px;font-size:10px;cursor:pointer">See all →</span>
-    </div>
-    <div class="today-title">Leash Confidence Walk</div>
-    <div class="today-meta">⏱ 15 min · 3 exercises · Golden Retriever tips</div>
-    <div class="today-exercises">
-      <div class="today-ex">Warm-up: Focus & eye contact (3 min)</div>
-      <div class="today-ex">Loose leash walking practice (8 min)</div>
-      <div class="today-ex">Distraction training (4 min)</div>
-    </div>
-    <div class="today-start-btn">Start Today's Training →</div>
+  <div class="sec fu2" style="flex-shrink:0">
+    <div class="sec-hd"><div class="sec-ttl">Quick Lessons</div><div class="see-all">See all</div></div>
   </div>
-
-  <!-- Quick Lessons -->
-  <div class="section anim-fade-2" style="flex-shrink:0">
-    <div class="section-head">
-      <div class="section-title">Quick Lessons</div>
-      <div class="see-all">See all</div>
-    </div>
+  <div class="lscroll fu3" style="flex-shrink:0;margin-bottom:24px">
+    <div class="lm" onclick="openLesson('basic_commands','Sit Command',1,1)"><div class="lmthumb" style="background:#FFF0E8">🎯</div><div class="lmbody"><div class="lmtitle">Sit Command</div><div class="lmmeta">5 min · Beginner</div></div></div>
+    <div class="lm" onclick="openLesson('basic_commands','Stay & Wait',1,2)"><div class="lmthumb" style="background:#EFF6FF">🐾</div><div class="lmbody"><div class="lmtitle">Stay & Wait</div><div class="lmmeta">8 min · Beginner</div></div></div>
+    <div class="lm" onclick="openLesson('leash_training','Loose Leash Walk',1,3)"><div class="lmthumb" style="background:#F0FFF4">🦮</div><div class="lmbody"><div class="lmtitle">Loose Leash Walk</div><div class="lmmeta">10 min · Intermediate</div></div></div>
+    <div class="lm" onclick="openLesson('tricks','High Five Trick',1,4)"><div class="lmthumb" style="background:#FFFBEA">⭐</div><div class="lmbody"><div class="lmtitle">High Five Trick</div><div class="lmmeta">6 min · Fun</div></div></div>
   </div>
-  <div class="lesson-scroll anim-fade-3" style="flex-shrink:0;margin-bottom:24px">
-    <div class="lesson-mini" onclick="goTo('s-lesson')">
-      <div class="lesson-thumb" style="background:#FFF0E8">🎯</div>
-      <div class="lesson-mini-body">
-        <div class="lesson-mini-title">Sit Command</div>
-        <div class="lesson-mini-meta">5 min · Beginner</div>
-      </div>
-    </div>
-    <div class="lesson-mini" onclick="goTo('s-lesson')">
-      <div class="lesson-thumb" style="background:#EFF6FF">🐾</div>
-      <div class="lesson-mini-body">
-        <div class="lesson-mini-title">Stay & Wait</div>
-        <div class="lesson-mini-meta">8 min · Beginner</div>
-      </div>
-    </div>
-    <div class="lesson-mini" onclick="goTo('s-lesson')">
-      <div class="lesson-thumb" style="background:#F0FFF4">🦮</div>
-      <div class="lesson-mini-body">
-        <div class="lesson-mini-title">Loose Leash Walk</div>
-        <div class="lesson-mini-meta">10 min · Intermediate</div>
-      </div>
-    </div>
-    <div class="lesson-mini" onclick="goTo('s-lesson')">
-      <div class="lesson-thumb" style="background:#FFFBEA">⭐</div>
-      <div class="lesson-mini-body">
-        <div class="lesson-mini-title">High Five Trick</div>
-        <div class="lesson-mini-meta">6 min · Fun</div>
-      </div>
+  <div class="sec fu3" style="flex-shrink:0">
+    <div class="sec-ttl" style="margin-bottom:12px">Fix a Problem 🔧</div>
+    <div class="bhbtn" onclick="goTo('s-behaviors')">
+      <div class="bhleft"><div class="bhicon">🛠️</div><div><div class="bhtitle">Behavior Programs</div><div class="bhsub">7-day focused fix programs</div></div></div>
+      <div class="bharr">›</div>
     </div>
   </div>
-
-  <!-- Fix a Problem -->
-  <div class="section anim-fade-3" style="flex-shrink:0">
-    <div class="section-title" style="margin-bottom:12px">Fix a Problem 🔧</div>
-    <div class="behavior-shortcut" onclick="goTo('s-behaviors')">
-      <div class="bh-left">
-        <div class="bh-icon">🛠️</div>
-        <div>
-          <div class="bh-title">Behavior Programs</div>
-          <div class="bh-sub">7-day focused fix programs</div>
-        </div>
-      </div>
-      <div class="bh-arr">›</div>
-    </div>
-  </div>
-
   <div style="height:20px;flex-shrink:0"></div>
-
-  <div class="nav-bar">
-    <div class="nav-item active" onclick="_origGoTo('s-home')"><div class="nav-icon">🏠</div><div class="nav-label">Home</div></div>
-    <div class="nav-item" onclick="openPlanScreen()"><div class="nav-icon">📅</div><div class="nav-label">Plan</div></div>
-    <div class="nav-item" onclick="_origGoTo('s-behaviors')"><div class="nav-icon">🔧</div><div class="nav-label">Fix</div></div>
-    <div class="nav-item" onclick="_origGoTo('s-profile')"><div class="nav-icon">👤</div><div class="nav-label">Profile</div></div>
+  <div class="nav">
+    <div class="ni act" onclick="goTo('s-home')"><div class="ni-icon">🏠</div><div class="ni-lbl">Home</div></div>
+    <div class="ni" onclick="openPlan()"><div class="ni-icon">📅</div><div class="ni-lbl">Plan</div></div>
+    <div class="ni" onclick="goTo('s-behaviors')"><div class="ni-icon">🔧</div><div class="ni-lbl">Fix</div></div>
+    <div class="ni" onclick="goTo('s-profile')"><div class="ni-icon">👤</div><div class="ni-lbl">Profile</div></div>
   </div>
 </div>
 
-<!-- ══════════════════════════════════
-     LESSON DETAIL
-══════════════════════════════════ -->
+<!-- LESSON -->
 <div class="screen" id="s-lesson">
-  <div class="status-bar dark"><span style="color:white">9:41</span><div class="status-right" style="color:white"><span>●●●</span><span>🔋</span></div></div>
-  <div class="lesson-hero" style="flex-shrink:0;height:260px">
-    <div class="lesson-back" onclick="goTo('s-home')">←</div>
-    <div class="lesson-illustration" id="lesson-illustration">
-      <!-- Generated dynamically by JS -->
+  <div class="sb dark"><span style="color:white">9:41</span><div class="sb-r" style="color:white"><span>●●●</span><span>🔋</span></div></div>
+  <div class="lhero" style="flex-shrink:0">
+    <div class="lback" onclick="goTo('s-home')">←</div>
+    <div class="lillus" id="l-illus"></div>
+  </div>
+  <div class="lmetarow" style="flex-shrink:0">
+    <div class="lbadge" id="l-time">⏱ 15 min</div>
+    <div class="lbadge" id="l-cat">🎯 Basic Commands</div>
+    <div class="lbadge">✅ Positive Reinforcement</div>
+  </div>
+  <div class="lbody">
+    <p id="l-intro" style="font-size:14px;font-weight:500;color:var(--gray);line-height:1.7"></p>
+    <div class="lstitle">Step-by-Step</div>
+    <div id="l-steps"></div>
+    <div class="tipbox">
+      <div class="tiptitle" id="l-tip-title">💡 Trainer Tip</div>
+      <div class="tiptext" id="l-tip-text"></div>
     </div>
   </div>
-  <div class="lesson-meta-row" style="flex-shrink:0">
-    <div class="lesson-badge" id="lesson-badge-time">⏱ 10 min</div>
-    <div class="lesson-badge" id="lesson-badge-level">📊 Intermediate</div>
-    <div class="lesson-badge">✅ Positive Reinforcement</div>
-  </div>
-  <div class="lesson-body">
-    <p style="font-size:14px;font-weight:500;color:var(--gray);line-height:1.7">Teach <span id="lesson-dog-name">Buddy</span> to walk calmly beside you without pulling. Golden Retrievers are eager learners — this usually clicks within 3 to 5 sessions.</p>
-    <div class="lesson-section-title">Step-by-Step</div>
-    <div class="step-item">
-      <div class="step-num">1</div>
-      <div><div class="step-title">Start in a low-distraction area</div><div class="step-desc">Begin indoors or in your backyard. Your dog needs to focus on you before tackling the street.</div></div>
-    </div>
-    <div class="step-item">
-      <div class="step-num">2</div>
-      <div><div class="step-title">Hold treats at your hip</div><div class="step-desc">Keep high-value treats at your left hip. Your dog's nose will naturally follow your hand position.</div></div>
-    </div>
-    <div class="step-item">
-      <div class="step-num">3</div>
-      <div><div class="step-title">Stop the moment he pulls</div><div class="step-desc">Freeze completely. Don't move. Wait for the leash tension to release, then reward immediately.</div></div>
-    </div>
-    <div class="step-item">
-      <div class="step-num">4</div>
-      <div><div class="step-title">Reward loose leash moments</div><div class="step-desc">Every 3 to 5 steps with a relaxed leash, say "Yes!" and give a treat. Make it a celebration.</div></div>
-    </div>
-    <div class="tip-box">
-      <div class="tip-title">💡 Golden Retriever Tip</div>
-      <div class="tip-text">Goldens are highly food-motivated but easily distracted by smells. Keep sessions short — 5 to 8 minutes — and always end on a success. Let sniffing be a reward for good walking behavior.</div>
-    </div>
-  </div>
-  <div class="lesson-footer">
-    <button class="btn" onclick="completeLesson()">✅ Mark as Complete</button>
-  </div>
+  <div class="lfoot"><button class="btn" onclick="completeLesson()">✅ Mark as Complete</button></div>
 </div>
 
-<!-- ══════════════════════════════════
-     BEHAVIOR PROGRAMS
-══════════════════════════════════ -->
+<!-- BEHAVIORS -->
 <div class="screen" id="s-behaviors">
-  <div class="status-bar"><span>9:41</span><div class="status-right"><span>●●●</span><span>🔋</span></div></div>
-  <div class="behaviors-header">
-    <div class="behaviors-title">Fix a Problem 🔧</div>
-    <div class="behaviors-sub">7-day focused programs for common issues</div>
-  </div>
+  <div class="sb"><span>9:41</span><div class="sb-r"><span>●●●</span><span>🔋</span></div></div>
+  <div class="behhdr" style="flex-shrink:0"><div class="behtitle">Fix a Problem 🔧</div><div class="behsub">7-day focused programs for common issues</div></div>
   <div style="flex:1;overflow-y:auto;padding-bottom:20px">
-    <div class="program-card"><div class="program-icon" style="background:#FFF0E8">🔊</div><div style="flex:1"><div class="program-name">Stop Excessive Barking</div><div class="program-desc">Teach when barking is appropriate and when to stay quiet using positive techniques.</div><div class="program-tags"><span class="program-tag">7 days</span><span class="program-tag">⭐ Most popular</span></div></div><div class="program-arr">›</div></div>
-    <div class="program-card"><div class="program-icon" style="background:#EFF6FF">💪</div><div style="flex:1"><div class="program-name">Stop Leash Pulling</div><div class="program-desc">Transform walks from a tug-of-war into a pleasant stroll with proven techniques.</div><div class="program-tags"><span class="program-tag">7 days</span><span class="program-tag">🔥 Trending</span></div></div><div class="program-arr">›</div></div>
-    <div class="program-card"><div class="program-icon" style="background:#F0FFF4">⬆️</div><div style="flex:1"><div class="program-name">Stop Jumping on People</div><div class="program-desc">Help your dog greet guests politely — four paws on the floor every time.</div><div class="program-tags"><span class="program-tag">7 days</span></div></div><div class="program-arr">›</div></div>
-    <div class="program-card"><div class="program-icon" style="background:#FFF8E1">😰</div><div style="flex:1"><div class="program-name">Separation Anxiety Relief</div><div class="program-desc">Build confidence so your dog can relax and feel safe when you're away.</div><div class="program-tags"><span class="program-tag">14 days</span><span class="program-tag">Advanced</span></div></div><div class="program-arr">›</div></div>
-    <div class="program-card"><div class="program-icon" style="background:#FDF4FF">😬</div><div style="flex:1"><div class="program-name">Stop Biting & Nipping</div><div class="program-desc">Teach bite inhibition and redirection — essential for puppies and young dogs.</div><div class="program-tags"><span class="program-tag">7 days</span></div></div><div class="program-arr">›</div></div>
+    <div class="pcard" onclick="openLesson('problem_behaviors','Stop Excessive Barking',1,1)"><div class="picon" style="background:#FFF0E8">🔊</div><div style="flex:1"><div class="pname">Stop Excessive Barking</div><div class="pdesc">Teach when barking is appropriate using positive techniques.</div><div class="ptags"><span class="ptag">7 days</span><span class="ptag">⭐ Most popular</span></div></div><div class="parr">›</div></div>
+    <div class="pcard" onclick="openLesson('leash_training','Stop Leash Pulling',1,2)"><div class="picon" style="background:#EFF6FF">💪</div><div style="flex:1"><div class="pname">Stop Leash Pulling</div><div class="pdesc">Transform walks from a tug-of-war into a pleasant stroll.</div><div class="ptags"><span class="ptag">7 days</span><span class="ptag">🔥 Trending</span></div></div><div class="parr">›</div></div>
+    <div class="pcard" onclick="openLesson('problem_behaviors','Stop Jumping on People',1,3)"><div class="picon" style="background:#F0FFF4">⬆️</div><div style="flex:1"><div class="pname">Stop Jumping on People</div><div class="pdesc">Four paws on the floor every time guests arrive.</div><div class="ptags"><span class="ptag">7 days</span></div></div><div class="parr">›</div></div>
+    <div class="pcard" onclick="openLesson('problem_behaviors','Separation Anxiety Relief',2,1)"><div class="picon" style="background:#FFF8E1">😰</div><div style="flex:1"><div class="pname">Separation Anxiety Relief</div><div class="pdesc">Build confidence so your dog relaxes when alone.</div><div class="ptags"><span class="ptag">14 days</span><span class="ptag">Advanced</span></div></div><div class="parr">›</div></div>
+    <div class="pcard" onclick="openLesson('problem_behaviors','Stop Biting & Nipping',1,4)"><div class="picon" style="background:#FDF4FF">😬</div><div style="flex:1"><div class="pname">Stop Biting & Nipping</div><div class="pdesc">Teach bite inhibition — essential for puppies.</div><div class="ptags"><span class="ptag">7 days</span></div></div><div class="parr">›</div></div>
   </div>
-  <div class="nav-bar">
-    <div class="nav-item" onclick="_origGoTo('s-home')"><div class="nav-icon">🏠</div><div class="nav-label">Home</div></div>
-    <div class="nav-item" onclick="openPlanScreen()"><div class="nav-icon">📅</div><div class="nav-label">Plan</div></div>
-    <div class="nav-item active"><div class="nav-icon">🔧</div><div class="nav-label">Fix</div></div>
-    <div class="nav-item" onclick="_origGoTo('s-profile')"><div class="nav-icon">👤</div><div class="nav-label">Profile</div></div>
+  <div class="nav">
+    <div class="ni" onclick="goTo('s-home')"><div class="ni-icon">🏠</div><div class="ni-lbl">Home</div></div>
+    <div class="ni" onclick="openPlan()"><div class="ni-icon">📅</div><div class="ni-lbl">Plan</div></div>
+    <div class="ni act"><div class="ni-icon">🔧</div><div class="ni-lbl">Fix</div></div>
+    <div class="ni" onclick="goTo('s-profile')"><div class="ni-icon">👤</div><div class="ni-lbl">Profile</div></div>
   </div>
 </div>
 
-<!-- ══════════════════════════════════
-     PROFILE
-══════════════════════════════════ -->
-<div class="screen" id="s-profile">
-  <div class="status-bar bark"><span style="color:white">9:41</span><div class="status-right" style="color:white"><span>●●●</span><span>🔋</span></div></div>
-  <div style="flex:1;overflow-y:auto;padding-bottom:20px">
-    <div class="profile-hero">
-      <div class="profile-avatar-lg">S</div>
-      <div class="profile-name">Sarah Mitchell</div>
-      <div class="profile-email">sarah@email.com</div>
-      <div class="profile-badge">⭐ PawPath Member</div>
-    </div>
-    <div class="stats-row">
-      <div class="stat-card"><div class="stat-num">23</div><div class="stat-label">Lessons Done</div></div>
-      <div class="stat-card"><div class="stat-num">7</div><div class="stat-label">Day Streak</div></div>
-      <div class="stat-card"><div class="stat-num">2</div><div class="stat-label">Programs</div></div>
-    </div>
-    <div class="settings-section">
-      <div class="settings-label">My Dog</div>
-      <div class="settings-item"><span class="settings-item-icon">🐕</span><span class="settings-item-text" id="profile-dog-info">Buddy — Golden Retriever</span><span class="settings-item-arr">›</span></div>
-    </div>
-    <div class="settings-section">
-      <div class="settings-label">Access</div>
-      <div class="settings-item"><span class="settings-item-icon">🔑</span><span class="settings-item-text">Access Code Active</span><span class="settings-item-badge">Active</span></div>
-      <div class="settings-item"><span class="settings-item-icon">🛒</span><span class="settings-item-text">Upgrade or Renew</span><span class="settings-item-arr">›</span></div>
-    </div>
-    <div class="settings-section">
-      <div class="settings-label">App Settings</div>
-      <div class="settings-item"><span class="settings-item-icon">🔔</span><span class="settings-item-text">Training Reminders</span><span class="settings-item-arr">›</span></div>
-      <div class="settings-item"><span class="settings-item-icon">🐕</span><span class="settings-item-text">Edit Dog Profile</span><span class="settings-item-arr">›</span></div>
-      <div class="settings-item"><span class="settings-item-icon">❓</span><span class="settings-item-text">Help & Support</span><span class="settings-item-arr">›</span></div>
-      <div class="settings-item" onclick="resetApp()"><span class="settings-item-icon">🚪</span><span class="settings-item-text" style="color:#EF4444">Sign Out</span></div>
-    </div>
-  </div>
-  <div class="nav-bar">
-    <div class="nav-item" onclick="goTo('s-home')"><div class="nav-icon">🏠</div><div class="nav-label">Home</div></div>
-    <div class="nav-item" onclick="goTo('s-lesson')"><div class="nav-icon">📚</div><div class="nav-label">Lessons</div></div>
-    <div class="nav-item" onclick="goTo('s-behaviors')"><div class="nav-icon">🔧</div><div class="nav-label">Fix</div></div>
-    <div class="nav-item active"><div class="nav-icon">👤</div><div class="nav-label">Profile</div></div>
-  </div>
-</div>
-
-
-<!-- ══════════════════════════════════
-     WEEKLY PLAN
-══════════════════════════════════ -->
+<!-- PLAN -->
 <div class="screen" id="s-plan">
-  <div class="status-bar"><span id="plan-time">9:41</span><div class="status-right"><span>●●●</span><span>🔋</span></div></div>
-  <div class="plan-header" style="flex-shrink:0">
-    <div class="plan-title">Your Plan 📅</div>
-    <div class="plan-sub" id="plan-sub">Week 1 of 4 · Golden Retriever</div>
+  <div class="sb"><span>9:41</span><div class="sb-r"><span>●●●</span><span>🔋</span></div></div>
+  <div class="planhdr" style="flex-shrink:0"><div class="plantitle">Your Plan 📅</div><div class="plansub" id="plan-sub">Week 1 of 4</div></div>
+  <div class="wtabs" id="wtabs" style="flex-shrink:0">
+    <div class="wtab act" onclick="switchWeek(1)">Week 1</div>
+    <div class="wtab" onclick="switchWeek(2)">Week 2</div>
+    <div class="wtab" onclick="switchWeek(3)">Week 3</div>
+    <div class="wtab" onclick="switchWeek(4)">Week 4</div>
   </div>
-  <div class="week-tabs" id="week-tabs" style="flex-shrink:0">
-    <div class="week-tab active" onclick="switchWeek(1)">Week 1</div>
-    <div class="week-tab" onclick="switchWeek(2)">Week 2</div>
-    <div class="week-tab" onclick="switchWeek(3)">Week 3</div>
-    <div class="week-tab" onclick="switchWeek(4)">Week 4</div>
-  </div>
-  <div class="days-list" id="days-list"></div>
-  <div class="nav-bar">
-    <div class="nav-item" onclick="_origGoTo('s-home')"><div class="nav-icon">🏠</div><div class="nav-label">Home</div></div>
-    <div class="nav-item active"><div class="nav-icon">📅</div><div class="nav-label">Plan</div></div>
-    <div class="nav-item" onclick="_origGoTo('s-behaviors')"><div class="nav-icon">🔧</div><div class="nav-label">Fix</div></div>
-    <div class="nav-item" onclick="_origGoTo('s-profile')"><div class="nav-icon">👤</div><div class="nav-label">Profile</div></div>
+  <div class="dlist" id="dlist"></div>
+  <div class="nav">
+    <div class="ni" onclick="goTo('s-home')"><div class="ni-icon">🏠</div><div class="ni-lbl">Home</div></div>
+    <div class="ni act"><div class="ni-icon">📅</div><div class="ni-lbl">Plan</div></div>
+    <div class="ni" onclick="goTo('s-behaviors')"><div class="ni-icon">🔧</div><div class="ni-lbl">Fix</div></div>
+    <div class="ni" onclick="goTo('s-profile')"><div class="ni-icon">👤</div><div class="ni-lbl">Profile</div></div>
   </div>
 </div>
-</div><!-- /app -->
-<div class="desktop-footer">PawPath · AI Dog Training · 2025–2026</div>
 
-<!-- Toast -->
+<!-- PROFILE -->
+<div class="screen" id="s-profile">
+  <div class="sb bark-bg"><span style="color:white">9:41</span><div class="sb-r" style="color:white"><span>●●●</span><span>🔋</span></div></div>
+  <div style="flex:1;overflow-y:auto;padding-bottom:20px">
+    <div class="phero">
+      <div class="pav">🐾</div>
+      <div class="pname" id="p-name">Dog Owner</div>
+      <div class="pemail">PawPath Member</div>
+      <div class="pbadge">⭐ Active Plan</div>
+    </div>
+    <div class="statsrow">
+      <div class="statcard"><div class="statnum" id="p-streak">0</div><div class="statlbl">Streak</div></div>
+      <div class="statcard"><div class="statnum" id="p-done">0</div><div class="statlbl">Lessons</div></div>
+      <div class="statcard"><div class="statnum" id="p-week">1</div><div class="statlbl">Week</div></div>
+    </div>
+    <div class="setsec">
+      <div class="setlbl">My Dog</div>
+      <div class="setitem"><span class="seticon">🐕</span><span class="settext" id="p-dog">Buddy — Golden Retriever</span><span class="setarr">›</span></div>
+    </div>
+    <div class="setsec">
+      <div class="setlbl">Settings</div>
+      <div class="setitem"><span class="seticon">🔔</span><span class="settext">Training Reminders</span><span class="setarr">›</span></div>
+      <div class="setitem"><span class="seticon">🐕</span><span class="settext">Edit Dog Profile</span><span class="setarr">›</span></div>
+      <div class="setitem"><span class="seticon">❓</span><span class="settext">Help & Support</span><span class="setarr">›</span></div>
+      <div class="setitem" onclick="resetApp()"><span class="seticon">🚪</span><span class="settext" style="color:#EF4444">Sign Out & Reset</span></div>
+    </div>
+  </div>
+  <div class="nav">
+    <div class="ni" onclick="goTo('s-home')"><div class="ni-icon">🏠</div><div class="ni-lbl">Home</div></div>
+    <div class="ni" onclick="openPlan()"><div class="ni-icon">📅</div><div class="ni-lbl">Plan</div></div>
+    <div class="ni" onclick="goTo('s-behaviors')"><div class="ni-icon">🔧</div><div class="ni-lbl">Fix</div></div>
+    <div class="ni act"><div class="ni-icon">👤</div><div class="ni-lbl">Profile</div></div>
+  </div>
+</div>
+
+</div><!-- /app -->
+<div class="dsk-footer dsk">PawPath · AI Dog Training · 2025–2026</div>
 <div class="toast" id="toast"></div>
 
 <script>
-// ── STATE ──
-const state = {
-  dogName: localStorage.getItem('pp_dog_name') || '',
-  dogBreed: localStorage.getItem('pp_dog_breed') || '',
-  unlocked: localStorage.getItem('pp_unlocked') === 'true',
-  onboarded: localStorage.getItem('pp_onboarded') === 'true',
+// ── STATE ──────────────────────────────────────────────────
+const S = {
+  dn: localStorage.getItem('dn') || '',       // dog name
+  db: localStorage.getItem('db') || '',       // dog breed
+  pr: JSON.parse(localStorage.getItem('pr') || '[]'), // problems
+  on: localStorage.getItem('on') === '1',     // onboarded
+  cd: JSON.parse(localStorage.getItem('cd') || '[]'), // completed days ['w1d1',...]
+  cw: 1, cd2: 1, cat: 'basic_commands', ctitle: '',
 };
 
-// ── VALID CODES ──
-const VALID_CODES = [
-  'PAWPATH-ALPHA01',
-  'PAWPATH-ALPHA02',
-  'PAWPATH-ALPHA03',
-  'PAWPATH-ALPHA04',
-  'PAWPATH-ALPHA05',
-  'PAWPATH-ALPHA06',
-  'PAWPATH-ALPHA07',
-  'PAWPATH-ALPHA08',
-  'PAWPATH-ALPHA09',
-  'PAWPATH-ALPHA10',
-  'PAWPATH-ALPHA11',
-  'PAWPATH-ALPHA12',
-  'PAWPATH-ALPHA13',
-  'PAWPATH-ALPHA14',
-  'PAWPATH-ALPHA15',
-  'PAWPATH-ALPHA16',
-  'PAWPATH-ALPHA17',
-  'PAWPATH-ALPHA18',
-  'PAWPATH-ALPHA19',
-  'PAWPATH-ALPHA20',
-  'PAWPATH-VIP001',
-  'PAWPATH-VIP002',
-  'PAWPATH-VIP003',
-  'PAWPATH-VIP004',
-  'PAWPATH-VIP005',
-];
+const UNLOCK_DAYS = 5;
 
-// ── NAVIGATION ──
-function goTo(id) {
-  document.querySelectorAll('.screen').forEach(s => {
-    s.classList.remove('active');
-    s.style.display = '';
-  });
-  const screen = document.getElementById(id);
-  screen.classList.add('active');
-  screen.scrollTop = 0;
-  updateTime();
-}
-
-function updateTime() {
-  const now = new Date();
-  const t = now.getHours() + ':' + String(now.getMinutes()).padStart(2,'0');
-  document.querySelectorAll('[id$="time"], #home-time, #time1').forEach(el => { if(el) el.textContent = t; });
-}
-
-// ── ACCESS VALIDATION ──
-function validateAccess() {
-  const code = document.getElementById('access-code-input').value.trim().toUpperCase();
-  if (VALID_CODES.includes(code) || code.startsWith('PAWPATH-')) {
-    localStorage.setItem('pp_unlocked', 'true');
-    state.unlocked = true;
-    showToast('✅ Access unlocked! Let\'s set up your plan.');
-    setTimeout(() => goTo('s-quiz1'), 800);
-  } else {
-    showToast('❌ Invalid code. Check your Hotmart email.');
-  }
-}
-
-// ── QUIZ LOGIC ──
-function saveDogName() {
-  const name = document.getElementById('dog-name').value.trim() || 'Buddy';
-  state.dogName = name;
-  state.problems = state.problems || [];
-  state.currentWeek = 1;
-  state.currentDay = 1;
-  localStorage.setItem('pp_dog_name', name);
-  document.getElementById('dog-name-q2').textContent = name;
-  document.getElementById('dog-name-q3').textContent = name;
-  document.getElementById('gen-dog-name').textContent = name;
-  document.getElementById('home-dog-name').textContent = name;
-  document.getElementById('lesson-dog-name').textContent = name;
-  goTo('s-quiz2');
-}
-
-function selectOne(el, selector) {
-  document.querySelectorAll(selector).forEach(c => c.classList.remove('sel'));
-  el.classList.add('sel');
-}
-
-// ── GENERATING FLOW ──
-function startGenerating() {
-  const breed = document.getElementById('dog-breed').value.trim() || 'Mixed breed';
-  state.dogBreed = breed;
-  localStorage.setItem('pp_dog_breed', breed);
-
-  // Save selected problems
-  const selectedChips = document.querySelectorAll('#s-quiz3 .chip.sel');
-  state.problems = Array.from(selectedChips).map(c => {
-    const text = c.textContent.trim().toLowerCase();
-    if (text.includes('bark')) return 'barking';
-    if (text.includes('pull') || text.includes('leash')) return 'pulling';
-    if (text.includes('jump')) return 'jumping';
-    if (text.includes('bit') || text.includes('nip')) return 'biting';
-    if (text.includes('anxi')) return 'anxiety';
-    if (text.includes('chew')) return 'chewing';
-    if (text.includes('potty')) return 'potty';
-    return 'default';
-  });
-  localStorage.setItem('pp_problems', JSON.stringify(state.problems));
-  document.getElementById('profile-dog-info').textContent = state.dogName + ' — ' + breed;
-  goTo('s-generating');
-
-  // Simulate AI steps
-  setTimeout(() => {
-    document.getElementById('gd3').className = 'gen-dot';
-    document.getElementById('gd3').textContent = '✓';
-    document.getElementById('gt3').className = 'gen-text done';
-    document.getElementById('gd4').className = 'gen-dot spin';
-  }, 1200);
-
-  setTimeout(() => {
-    document.getElementById('gd4').className = 'gen-dot';
-    document.getElementById('gd4').textContent = '✓';
-    document.getElementById('gt4').className = 'gen-text done';
-  }, 2400);
-
-  setTimeout(() => {
-    localStorage.setItem('pp_onboarded', 'true');
-    state.onboarded = true;
-    goTo('s-home');
-    showToast('🎉 ' + state.dogName + '\'s plan is ready!');
-  }, 3200);
-}
-
-// ── LESSON ILLUSTRATION SYSTEM ──
-const LESSON_DATA = {
-  basic_commands: {
-    emoji: '🎯',
-    color: 'linear-gradient(150deg,#2C1A0E,#4A2A10)',
-    title: 'Basic Commands',
-    exercises: ['Sit', 'Stay', 'Come', 'Down', 'Leave It'],
-  },
-  leash_training: {
-    emoji: '🦮',
-    color: 'linear-gradient(150deg,#0E1A2C,#102A4A)',
-    title: 'Leash Training',
-    exercises: ['Loose Leash', 'Heel', 'Stop Pulling', 'Focus Walk'],
-  },
-  potty_training: {
-    emoji: '🏠',
-    color: 'linear-gradient(150deg,#1A2C0E,#2A4A10)',
-    title: 'Potty Training',
-    exercises: ['Schedule Training', 'Signal Training', 'Crate Method'],
-  },
-  problem_behaviors: {
-    emoji: '🔧',
-    color: 'linear-gradient(150deg,#2C1A1A,#4A1010)',
-    title: 'Behavior Fix',
-    exercises: ['Stop Barking', 'Stop Jumping', 'Stop Biting'],
-  },
-  socialization: {
-    emoji: '🐾',
-    color: 'linear-gradient(150deg,#1A1A2C,#10104A)',
-    title: 'Socialization',
-    exercises: ['Meet Other Dogs', 'Meet Strangers', 'Car Rides'],
-  },
-  tricks: {
-    emoji: '⭐',
-    color: 'linear-gradient(150deg,#2C2010,#4A3510)',
-    title: 'Fun Tricks',
-    exercises: ['High Five', 'Roll Over', 'Spin', 'Play Dead'],
-  },
+// ── WEEK DATA ──────────────────────────────────────────────
+const WK = {
+  1:{icon:'🎯',theme:'Foundation Week',desc:'Building focus and basic commands',days:[
+    {t:'Name Recognition & Focus',d:15,c:'basic_commands',e:['Name game','Eye contact','Sit intro']},
+    {t:'Sit Command Deep Dive',d:15,c:'basic_commands',e:['Sit with treat lure','Sit with hand signal','Sit at distance']},
+    {t:'Stay Basics',d:15,c:'basic_commands',e:['Wait 3 seconds','Wait 10 seconds','Release command']},
+    {t:'Leash Introduction',d:15,c:'leash_training',e:['Leash on/off game','Walk beside you','Stop & reward']},
+    {t:'Come Command',d:15,c:'basic_commands',e:['Come from 1 meter','Come from 3 meters','Come with distraction']},
+    {t:'Down Command',d:15,c:'basic_commands',e:['Lure to ground','Hand signal down','Down & stay']},
+    {t:'Week 1 Review',d:20,c:'basic_commands',e:['Sit','Stay','Come','Down combo']},
+  ]},
+  2:{icon:'💪',theme:'Consistency Week',desc:'Strengthening commands with distractions',days:[
+    {t:'Sit in New Locations',d:15,c:'basic_commands',e:['Sit in kitchen','Sit in garden','Sit near door']},
+    {t:'Loose Leash Walking',d:20,c:'leash_training',e:['5 steps no pull','Change direction','Stop & go game']},
+    {t:'Leave It Command',d:15,c:'basic_commands',e:['Leave treat on floor','Leave toy','Leave food on walk']},
+    {t:'Down & Stay Extended',d:15,c:'basic_commands',e:['Down 30 seconds','Down while you move','Down with distractions']},
+    {t:'Greeting Manners',d:15,c:'problem_behaviors',e:['No jump training','Four paws rule','Calm hello']},
+    {t:'Recall Game',d:15,c:'basic_commands',e:['Hide & come','Come from other room','Come with toys around']},
+    {t:'Week 2 Review',d:20,c:'basic_commands',e:['All commands combo','Outside practice']},
+  ]},
+  3:{icon:'🌍',theme:'Real World Week',desc:'Training outside with real distractions',days:[
+    {t:'Outdoor Sit & Stay',d:20,c:'basic_commands',e:['Sit at park entrance','Stay with dogs nearby','Come from distance']},
+    {t:'Walk with Other Dogs',d:20,c:'leash_training',e:['Pass another dog calmly','Focus on you','No lunging']},
+    {t:'Impulse Control',d:15,c:'basic_commands',e:['Wait at door','Wait for food bowl','Wait before crossing']},
+    {t:'Behavior Fix Day',d:20,c:'problem_behaviors',e:['Target specific problem','Practice scenario','Reward calm response']},
+    {t:'Socialization Walk',d:25,c:'socialization',e:['Meet 1 new person','Hear new sounds','New surface walking']},
+    {t:'Off Leash Recall',d:15,c:'leash_training',e:['Long line recall','10 meter come','Come past distractions']},
+    {t:'Week 3 Review',d:20,c:'basic_commands',e:['Full outdoor session','All commands outside']},
+  ]},
+  4:{icon:'⭐',theme:'Mastery Week',desc:'Polishing everything and adding fun tricks',days:[
+    {t:'Commands Without Treats',d:15,c:'basic_commands',e:['Sit on verbal only','Stay on verbal only','Come on verbal only']},
+    {t:'High Five Trick',d:15,c:'tricks',e:['Paw touch','High five motion','High five on cue']},
+    {t:'Spin Trick',d:15,c:'tricks',e:['Lure circle','Spin on cue','Spin both directions']},
+    {t:'Full Walk Test',d:25,c:'leash_training',e:['30 min perfect walk','Pass 3 distractions','Sit at every corner']},
+    {t:'Behavior Proof Day',d:20,c:'problem_behaviors',e:['Test main problem fixed','Real scenario practice','Celebrate progress']},
+    {t:'Play Dead Trick',d:15,c:'tricks',e:['Down & roll','Stay still','Bang! cue']},
+    {t:'Graduation Day! 🎓',d:30,c:'tricks',e:['Show all commands','Do 2 tricks','Celebrate with your dog!']},
+  ]},
 };
 
-const BREED_EMOJIS = {
-  'golden retriever': '🐕‍🦺',
-  'labrador': '🦮',
-  'german shepherd': '🐕',
-  'bulldog': '🐶',
-  'poodle': '🐩',
-  'beagle': '🐕',
-  'chihuahua': '🐕',
-  'husky': '🐕',
-  'border collie': '🐕',
-  'default': '🐶',
+const LI = {
+  basic_commands:{e:'🎯',bg:'linear-gradient(150deg,#2C1A0E,#4A2A10)',lbl:'Basic Commands',tip:'Use high-value treats and keep sessions under 10 minutes for maximum focus.'},
+  leash_training:{e:'🦮',bg:'linear-gradient(150deg,#0E1A2C,#102A4A)',lbl:'Leash Training',tip:'The moment the leash goes tight, stop completely. Only move forward when it relaxes.'},
+  potty_training:{e:'🏠',bg:'linear-gradient(150deg,#1A2C0E,#2A4A10)',lbl:'Potty Training',tip:'Take your dog outside every 2 hours and always right after meals and naps.'},
+  problem_behaviors:{e:'🔧',bg:'linear-gradient(150deg,#2C1A1A,#4A1010)',lbl:'Behavior Fix',tip:'Never punish — redirect to the behavior you want and reward immediately.'},
+  socialization:{e:'🐾',bg:'linear-gradient(150deg,#1A1A2C,#10104A)',lbl:'Socialization',tip:'Let your dog set the pace. Forced interaction creates fear — calm curiosity creates confidence.'},
+  tricks:{e:'⭐',bg:'linear-gradient(150deg,#2C2010,#4A3510)',lbl:'Fun Tricks',tip:'Keep trick training playful and upbeat. End every session with a trick your dog already knows.'},
 };
 
-const PROBLEM_TIPS = {
-  barking: 'Focus: quiet command first',
-  pulling: 'Focus: loose leash reward',
-  jumping: 'Focus: four paws on floor',
-  biting: 'Focus: bite inhibition',
-  anxiety: 'Focus: calm departures',
-  chewing: 'Focus: redirection',
-  potty: 'Focus: consistent schedule',
-  default: 'Focus: positive reinforcement',
-};
+const BEMOJI = {'golden':'🐕‍🦺','labrador':'🦮','german':'🐕','shepherd':'🐕','bulldog':'🐶','poodle':'🐩','beagle':'🐕','chihuahua':'🐕','husky':'🐕','collie':'🐕'};
+const PTIPS = {barking:'Focus: quiet command first',pulling:'Focus: loose leash reward',jumping:'Focus: four paws on floor',biting:'Focus: bite inhibition',anxiety:'Focus: calm departures',chewing:'Focus: redirection',potty:'Focus: consistent schedule'};
 
-function getBreedEmoji(breed) {
+// ── HELPERS ────────────────────────────────────────────────
+function bEmoji(breed) {
   if (!breed) return '🐶';
   const b = breed.toLowerCase();
-  for (const key of Object.keys(BREED_EMOJIS)) {
-    if (b.includes(key)) return BREED_EMOJIS[key];
-  }
-  return BREED_EMOJIS.default;
+  for (const k of Object.keys(BEMOJI)) if (b.includes(k)) return BEMOJI[k];
+  return '🐶';
 }
-
-function renderLessonIllustration(category, lessonTitle) {
-  const dogName = state.dogName || 'Buddy';
-  const breed = state.dogBreed || 'Dog';
-  const problems = state.problems || [];
-  const data = LESSON_DATA[category] || LESSON_DATA.basic_commands;
-  const breedEmoji = getBreedEmoji(breed);
-  const problemKey = problems[0] || 'default';
-  const tip = PROBLEM_TIPS[problemKey] || PROBLEM_TIPS.default;
-
-  // Get week/day from plan
-  const weekNum = state.currentWeek || 1;
-  const dayNum = state.currentDay || 1;
-
-  const el = document.getElementById('lesson-illustration');
-  if (!el) return;
-
-  el.innerHTML = '';
-  el.style.background = data.color;
-  el.style.borderRadius = '0';
-
-  el.innerHTML = `
-    <div class="lesson-illus-card">
-      <span class="lesson-illus-emoji">${breedEmoji}</span>
-      <div class="lesson-illus-breed">${breed} · Week ${weekNum}, Day ${dayNum}</div>
-      <div class="lesson-illus-title">${lessonTitle || data.title}</div>
-      <div class="lesson-illus-tags">
-        ${data.exercises.slice(0,3).map(e => `<span class="lesson-illus-tag">${e}</span>`).join('')}
-      </div>
-    </div>
-    <div class="lesson-illus-focus">
-      <div class="lesson-illus-focus-label">Today's Focus for ${dogName}</div>
-      <div class="lesson-illus-focus-text">${tip}</div>
-    </div>
-  `;
+function isDone(w,d){ return S.cd.includes('w'+w+'d'+d); }
+function wDone(w){ return S.cd.filter(k=>k.startsWith('w'+w+'d')).length; }
+function wUnlocked(w){ return w===1 || wDone(w-1)>=UNLOCK_DAYS; }
+function todayPos(){
+  const tot = S.cd.length;
+  return { w:Math.min(Math.floor(tot/7)+1,4), d:Math.min((tot%7)+1,7) };
 }
+function saveCD(){ localStorage.setItem('cd', JSON.stringify(S.cd)); }
 
-// ── OPEN LESSON ──
-function openLesson(category, title, week, day) {
-  state.currentCategory = category;
-  state.currentLessonTitle = title;
-  state.currentWeek = week;
-  state.currentDay = day;
-  _origGoTo('s-lesson');
-  setTimeout(() => renderLessonIllustration(category, title), 80);
-}
-
-// ── COMPLETE LESSON ──
-function completeLesson() {
-  showToast('🔥 Lesson complete! Streak updated!');
-  setTimeout(() => goTo('s-home'), 600);
-}
-
-// Auto-render illustration when going to lesson screen
-const _origGoTo = goTo;
-goTo = function(id) {
-  _origGoTo(id);
-  if (id === 's-lesson') {
-    const cat = state.currentCategory || 'leash_training';
-    const title = state.currentLessonTitle || 'Loose Leash Walking';
-    setTimeout(() => renderLessonIllustration(cat, title), 80);
-  }
-}
-
-// ── TOAST ──
-function showToast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2800);
-}
-
-// ── RESET ──
-function resetApp() {
-  if(confirm('Sign out and clear your data?')) {
-    localStorage.clear();
-    location.reload();
-  }
-}
-
-// ── INSTALL PROMPT (Add to Home Screen) ──
-let deferredPrompt;
-window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault();
-  deferredPrompt = e;
-});
-
-// ── INIT ──
-window.addEventListener('load', () => {
+// ── NAVIGATION ─────────────────────────────────────────────
+function goTo(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  const el = document.getElementById(id);
+  if(el){ el.classList.add('active'); el.scrollTop=0; }
   updateTime();
-  setInterval(updateTime, 30000);
-
-  // Splash → decide route
-  setTimeout(() => {
-    if (!state.onboarded) {
-      localStorage.setItem('pp_unlocked', 'true');
-      state.unlocked = true;
-      state.problems = JSON.parse(localStorage.getItem('pp_problems') || '[]');
-      document.getElementById('dog-name').value = state.dogName;
-      goTo('s-quiz1');
-    } else {
-      state.problems = JSON.parse(localStorage.getItem('pp_problems') || '[]');
-      state.currentCategory = 'leash_training';
-      state.currentLessonTitle = 'Loose Leash Walking';
-      state.currentWeek = 1;
-      state.currentDay = 7;
-      document.getElementById('home-dog-name').textContent = state.dogName || 'Buddy';
-      document.getElementById('lesson-dog-name').textContent = state.dogName || 'Buddy';
-      document.getElementById('gen-dog-name').textContent = state.dogName || 'Buddy';
-      document.getElementById('profile-dog-info').textContent =
-        (state.dogName || 'Buddy') + ' — ' + (state.dogBreed || 'Golden Retriever');
-      goTo('s-home');
-    }
-  }, 2000);
-});
-
-// ══════════════════════════════════════
-// WEEKLY PLAN SYSTEM
-// ══════════════════════════════════════
-
-const WEEK_PLANS = {
-  1: {
-    theme: 'Foundation Week',
-    description: 'Building focus and basic commands',
-    icon: '🎯',
-    days: [
-      { title: 'Name Recognition & Focus', duration: 15, category: 'basic_commands', exercises: ['Name game', 'Eye contact', 'Sit intro'] },
-      { title: 'Sit Command Deep Dive', duration: 15, category: 'basic_commands', exercises: ['Sit with treat lure', 'Sit with hand signal', 'Sit at distance'] },
-      { title: 'Stay Basics', duration: 15, category: 'basic_commands', exercises: ['Wait 3 seconds', 'Wait 10 seconds', 'Release command'] },
-      { title: 'Leash Introduction', duration: 15, category: 'leash_training', exercises: ['Leash on/off game', 'Walk beside you', 'Stop & reward'] },
-      { title: 'Come Command', duration: 15, category: 'basic_commands', exercises: ['Come from 1 meter', 'Come from 3 meters', 'Come with distraction'] },
-      { title: 'Down Command', duration: 15, category: 'basic_commands', exercises: ['Lure to ground', 'Hand signal down', 'Down & stay'] },
-      { title: 'Week 1 Review', duration: 20, category: 'basic_commands', exercises: ['Sit', 'Stay', 'Come', 'Down combo'] },
-    ]
-  },
-  2: {
-    theme: 'Consistency Week',
-    description: 'Strengthening commands with distractions',
-    icon: '💪',
-    days: [
-      { title: 'Sit in New Locations', duration: 15, category: 'basic_commands', exercises: ['Sit in kitchen', 'Sit in garden', 'Sit near door'] },
-      { title: 'Loose Leash Walking', duration: 20, category: 'leash_training', exercises: ['5 steps no pull', 'Change direction', 'Stop & go game'] },
-      { title: 'Leave It Command', duration: 15, category: 'basic_commands', exercises: ['Leave treat on floor', 'Leave toy', 'Leave food on walk'] },
-      { title: 'Down & Stay Extended', duration: 15, category: 'basic_commands', exercises: ['Down 30 seconds', 'Down while you move', 'Down with distractions'] },
-      { title: 'Greeting Manners', duration: 15, category: 'problem_behaviors', exercises: ['No jump training', 'Four paws rule', 'Calm hello'] },
-      { title: 'Recall Game', duration: 15, category: 'basic_commands', exercises: ['Hide & come', 'Come from other room', 'Come with toys around'] },
-      { title: 'Week 2 Review', duration: 20, category: 'basic_commands', exercises: ['All commands combo', 'Outside practice'] },
-    ]
-  },
-  3: {
-    theme: 'Real World Week',
-    description: 'Training outside with real distractions',
-    icon: '🌍',
-    days: [
-      { title: 'Outdoor Sit & Stay', duration: 20, category: 'basic_commands', exercises: ['Sit at park entrance', 'Stay with dogs nearby', 'Come from distance'] },
-      { title: 'Walk with Other Dogs', duration: 20, category: 'leash_training', exercises: ['Pass another dog calmly', 'Focus on you', 'No lunging'] },
-      { title: 'Impulse Control', duration: 15, category: 'basic_commands', exercises: ['Wait at door', 'Wait for food bowl', 'Wait before crossing street'] },
-      { title: 'Behavior Fix Day', duration: 20, category: 'problem_behaviors', exercises: ['Target specific problem', 'Practice scenario', 'Reward calm response'] },
-      { title: 'Socialization Walk', duration: 25, category: 'socialization', exercises: ['Meet 1 new person', 'Hear new sounds', 'New surface walking'] },
-      { title: 'Off Leash Recall', duration: 15, category: 'leash_training', exercises: ['Long line recall', '10 meter come', 'Come past distractions'] },
-      { title: 'Week 3 Review', duration: 20, category: 'basic_commands', exercises: ['Full outdoor session', 'All commands outside'] },
-    ]
-  },
-  4: {
-    theme: 'Mastery Week',
-    description: 'Polishing everything and adding fun tricks',
-    icon: '⭐',
-    days: [
-      { title: 'Commands Without Treats', duration: 15, category: 'basic_commands', exercises: ['Sit on verbal only', 'Stay on verbal only', 'Come on verbal only'] },
-      { title: 'High Five Trick', duration: 15, category: 'tricks', exercises: ['Paw touch', 'High five motion', 'High five on cue'] },
-      { title: 'Spin Trick', duration: 15, category: 'tricks', exercises: ['Lure circle', 'Spin on cue', 'Spin both directions'] },
-      { title: 'Full Walk Test', duration: 25, category: 'leash_training', exercises: ['30 min perfect walk', 'Pass 3 distractions', 'Sit at every corner'] },
-      { title: 'Behavior Proof Day', duration: 20, category: 'problem_behaviors', exercises: ['Test main problem fixed', 'Real scenario practice', 'Celebrate progress'] },
-      { title: 'Play Dead Trick', duration: 15, category: 'tricks', exercises: ['Down & roll', 'Stay still', 'Bang! cue'] },
-      { title: 'Graduation Day! 🎓', duration: 30, category: 'tricks', exercises: ['Show all commands', 'Do 2 tricks', 'Celebrate with your dog!'] },
-    ]
-  }
-};
-
-let currentPlanWeek = 1;
-const TODAY_DAY = 7; // simulating day 7 of week 1
-
-function openPlanScreen() {
-  currentPlanWeek = 1;
-  renderWeekPlan(1);
-  _origGoTo('s-plan');
+}
+function updateTime(){
+  const now=new Date();
+  const t=now.getHours()+':'+String(now.getMinutes()).padStart(2,'0');
+  ['htime'].forEach(id=>{ const el=document.getElementById(id); if(el) el.textContent=t; });
+}
+function toast(msg,dur=2800){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),dur);
 }
 
-function switchWeek(week) {
-  currentPlanWeek = week;
-  // Update tabs
-  document.querySelectorAll('.week-tab').forEach((t, i) => {
-    t.classList.toggle('active', i + 1 === week);
-  });
-  renderWeekPlan(week);
+// ── QUIZ ───────────────────────────────────────────────────
+function saveName(){
+  const n=document.getElementById('dog-name').value.trim()||'Buddy';
+  S.dn=n; localStorage.setItem('dn',n);
+  ['q2n','q3n','gen-name','h-dog-name'].forEach(id=>{ const el=document.getElementById(id); if(el) el.textContent=n; });
+  goTo('s-quiz2');
+}
+function saveProblems(){
+  const chips=document.querySelectorAll('#s-quiz3 .chip.sel');
+  S.pr=Array.from(chips).map(c=>{
+    const t=c.textContent.toLowerCase();
+    if(t.includes('bark')) return 'barking';
+    if(t.includes('pull')||t.includes('leash')) return 'pulling';
+    if(t.includes('jump')) return 'jumping';
+    if(t.includes('bit')||t.includes('nip')) return 'biting';
+    if(t.includes('anxi')) return 'anxiety';
+    if(t.includes('chew')) return 'chewing';
+    if(t.includes('potty')) return 'potty';
+    return null;
+  }).filter(Boolean);
+  localStorage.setItem('pr',JSON.stringify(S.pr));
+  goTo('s-quiz4');
+}
+function selTime(el){ document.querySelectorAll('.tc').forEach(c=>c.classList.remove('sel')); el.classList.add('sel'); }
+function startGen(){
+  const br=document.getElementById('dog-breed').value.trim()||'Mixed breed';
+  S.db=br; localStorage.setItem('db',br);
+  goTo('s-gen');
+  setTimeout(()=>{ document.getElementById('gd3').className='gdot'; document.getElementById('gd3').textContent='✓'; document.getElementById('gt3').className='gtxt done'; document.getElementById('gd4').className='gdot spin'; },1200);
+  setTimeout(()=>{ document.getElementById('gd4').className='gdot'; document.getElementById('gd4').textContent='✓'; document.getElementById('gt4').className='gtxt done'; },2400);
+  setTimeout(()=>{ localStorage.setItem('on','1'); S.on=true; refreshHome(); goTo('s-home'); toast('🎉 '+S.dn+"'s plan is ready!"); },3200);
 }
 
-function renderWeekPlan(week) {
-  const plan = WEEK_PLANS[week];
-  if (!plan) return;
-  const breed = state.dogBreed || 'your dog';
-  const unlocked = isWeekUnlocked(week);
-  const weekDone = getWeekCompletedCount(week);
-  const { week: todayWeek, day: todayDay } = getTodayWeekDay();
+// ── LESSON ─────────────────────────────────────────────────
+function openLesson(cat,title,week,day){
+  S.cat=cat; S.ctitle=title; S.cw=week; S.cd2=day;
+  renderLesson(cat,title,week,day);
+  goTo('s-lesson');
+}
+function openTodayLesson(){
+  const {w,d}=todayPos();
+  const day=WK[w].days[d-1];
+  openLesson(day.c,day.t,w,d);
+}
+function renderLesson(cat,title,week,day){
+  const info=LI[cat]||LI.basic_commands;
+  const dog=S.dn||'Buddy';
+  const breed=S.db||'your dog';
+  const exs=WK[week]&&WK[week].days[day-1]?WK[week].days[day-1].e:['Exercise 1','Exercise 2','Exercise 3'];
+  const dur=WK[week]&&WK[week].days[day-1]?WK[week].days[day-1].d:15;
+  const probKey=S.pr[0]||'default';
+  const focusTip=PTIPS[probKey]||'Focus: positive reinforcement';
 
-  const sub = document.getElementById('plan-sub');
-  if (sub) sub.textContent = `Week ${week} of 4 · ${breed}`;
-
-  const list = document.getElementById('days-list');
-  if (!list) return;
-
-  // Locked week message
-  if (!unlocked) {
-    const prevDone = getWeekCompletedCount(week - 1);
-    const needed = DAYS_TO_UNLOCK - prevDone;
-    list.innerHTML = `
-      <div style="text-align:center;padding:40px 20px">
-        <div style="font-size:56px;margin-bottom:16px">🔒</div>
-        <div style="font-family:'Instrument Serif',serif;font-size:22px;color:var(--ink);margin-bottom:10px">Week ${week} is locked</div>
-        <div style="font-size:14px;font-weight:600;color:var(--gray);line-height:1.6;margin-bottom:24px">Complete ${needed} more day${needed > 1 ? 's' : ''} in Week ${week-1} to unlock this week.</div>
-        <div style="background:var(--bone);border-radius:16px;padding:16px;text-align:left">
-          <div style="font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--gray);margin-bottom:10px">Your Week ${week-1} Progress</div>
-          <div style="display:flex;gap:6px;flex-wrap:wrap">
-            ${Array.from({length:7},(_,i)=>`<div style="width:32px;height:32px;border-radius:8px;background:${isDayComplete(week-1,i+1)?'var(--paw)':'var(--stone)'};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:white">${isDayComplete(week-1,i+1)?'✓':i+1}</div>`).join('')}
-          </div>
-          <div style="margin-top:10px;font-size:13px;font-weight:700;color:var(--paw)">${prevDone}/${DAYS_TO_UNLOCK} days completed</div>
-        </div>
+  const illus=document.getElementById('l-illus');
+  if(illus){
+    illus.style.background=info.bg;
+    illus.innerHTML=`
+      <div class="licard">
+        <span class="liemoji">${bEmoji(breed)}</span>
+        <div class="libreed">${breed} · Week ${week}, Day ${day}</div>
+        <div class="lititle">${title}</div>
+        <div class="litags">${exs.slice(0,3).map(e=>`<span class="litag">${e}</span>`).join('')}</div>
       </div>
-    `;
+      <div class="lifocus">
+        <div class="lifocus-lbl">Today's Focus for ${dog}</div>
+        <div class="lifocus-txt">${focusTip}</div>
+      </div>`;
+  }
+
+  const bt=document.getElementById('l-time'); if(bt) bt.textContent='⏱ '+dur+' min';
+  const bc=document.getElementById('l-cat'); if(bc) bc.textContent=info.e+' '+info.lbl;
+  const intro=document.getElementById('l-intro'); if(intro) intro.textContent=`Train ${dog} with this ${info.lbl.toLowerCase()} session. Keep it fun, positive, and consistent — short sessions beat long ones every time.`;
+  const steps=document.getElementById('l-steps');
+  if(steps) steps.innerHTML=exs.map((ex,i)=>`<div class="stepitem"><div class="stepnum">${i+1}</div><div><div class="steptitle">${ex}</div><div class="stepdesc">Practice this exercise 3–5 times using treats and praise. Quality repetitions beat quantity — stop while your dog is still engaged.</div></div></div>`).join('');
+  const tt=document.getElementById('l-tip-title'); if(tt) tt.textContent=`💡 ${breed} Tip`;
+  const tx=document.getElementById('l-tip-text'); if(tx) tx.textContent=info.tip;
+}
+
+// ── PROGRESS ───────────────────────────────────────────────
+function completeLesson(){
+  const key='w'+S.cw+'d'+S.cd2;
+  if(!S.cd.includes(key)){ S.cd.push(key); saveCD(); checkUnlock(S.cw); }
+  refreshHome(); updateSidebar();
+  toast('🔥 Lesson complete! Keep going!');
+  setTimeout(()=>goTo('s-home'),700);
+}
+function checkUnlock(w){
+  if(w<4 && wDone(w)===UNLOCK_DAYS) setTimeout(()=>toast('🎉 Week '+(w+1)+' unlocked!',3500),1000);
+  if(S.cd.length>=28) setTimeout(showComplete,2000);
+}
+function refreshHome(){
+  const {w,d}=todayPos();
+  const day=WK[w]&&WK[w].days[d-1];
+  if(!day) return;
+  const total=(w-1)*7+d;
+  const el=id=>document.getElementById(id);
+  if(el('t-day-lbl')) el('t-day-lbl').textContent=`Day ${total} of 28 · Week ${w}`;
+  if(el('t-title')) el('t-title').textContent=day.t;
+  if(el('t-meta')) el('t-meta').textContent=`⏱ ${day.d} min · ${day.e.length} exercises`;
+  if(el('t-exs')) el('t-exs').innerHTML=day.e.map(e=>`<div class="tex">${e}</div>`).join('');
+  if(el('h-streak')) el('h-streak').textContent=S.cd.length;
+  const row=el('sdays-row');
+  if(row){ const days=['M','T','W','T','F','S','S']; const done=S.cd.length%7; row.innerHTML=days.map((d2,i)=>`<div class="sd ${i<done?'':'off'}">${d2}</div>`).join(''); }
+  S.cw=w; S.cd2=d;
+}
+function updateSidebar(){
+  const {w}=todayPos();
+  const el=id=>document.getElementById(id);
+  ['sb-streak'].forEach(id=>{ const e=el(id); if(e) e.textContent=S.cd.length+' days'; });
+  ['sb-done','p-done'].forEach(id=>{ const e=el(id); if(e) e.textContent=S.cd.length; });
+  ['sb-week'].forEach(id=>{ const e=el(id); if(e) e.textContent='Week '+w; });
+  ['p-streak'].forEach(id=>{ const e=el(id); if(e) e.textContent=S.cd.length; });
+  ['p-week'].forEach(id=>{ const e=el(id); if(e) e.textContent=w; });
+}
+
+// ── PLAN SCREEN ────────────────────────────────────────────
+function openPlan(){ switchWeek(1); goTo('s-plan'); }
+function switchWeek(w){
+  document.querySelectorAll('.wtab').forEach((t,i)=>t.classList.toggle('act',i+1===w));
+  renderPlan(w);
+}
+function renderPlan(w){
+  const plan=WK[w];
+  if(!plan) return;
+  const sub=document.getElementById('plan-sub');
+  if(sub) sub.textContent=`Week ${w} of 4 · ${S.db||'your dog'}`;
+  const list=document.getElementById('dlist');
+  if(!list) return;
+
+  if(!wUnlocked(w)){
+    const prev=wDone(w-1);
+    const need=UNLOCK_DAYS-prev;
+    list.innerHTML=`<div style="text-align:center;padding:48px 20px">
+      <div style="font-size:56px;margin-bottom:16px">🔒</div>
+      <div style="font-family:'Instrument Serif',serif;font-size:24px;color:var(--ink);margin-bottom:10px">Week ${w} is locked</div>
+      <div style="font-size:14px;font-weight:600;color:var(--gray);line-height:1.7;margin-bottom:24px">Complete ${need} more day${need>1?'s':''} in Week ${w-1} to unlock.</div>
+      <div style="background:var(--bone);border-radius:16px;padding:16px;text-align:left">
+        <div style="font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--gray);margin-bottom:10px">Week ${w-1} Progress</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+          ${Array.from({length:7},(_,i)=>`<div style="width:34px;height:34px;border-radius:8px;background:${isDone(w-1,i+1)?'var(--paw)':'var(--stone)'};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:white">${isDone(w-1,i+1)?'✓':i+1}</div>`).join('')}
+        </div>
+        <div style="font-size:13px;font-weight:700;color:var(--paw)">${prev}/${UNLOCK_DAYS} days completed</div>
+      </div>
+    </div>`;
     return;
   }
 
-  // Progress bar for current week
-  const progressPct = Math.round((weekDone / 7) * 100);
+  const wd=wDone(w);
+  const pct=Math.round(wd/7*100);
+  const {w:tw,d:td}=todayPos();
 
-  let html = `
-    <div class="week-summary">
-      <div class="ws-icon">${plan.icon}</div>
-      <div style="flex:1">
-        <div class="ws-title">${plan.theme}</div>
-        <div class="ws-desc">${plan.description}</div>
-        <div style="margin-top:8px;background:rgba(255,255,255,.1);border-radius:99px;height:5px;overflow:hidden">
-          <div style="height:100%;width:${progressPct}%;background:var(--paw);border-radius:99px;transition:width .4s"></div>
-        </div>
-        <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,.5);margin-top:4px">${weekDone}/7 days complete</div>
-      </div>
-    </div>
-  `;
+  let html=`<div class="wsum"><div class="wsicon">${plan.icon}</div><div style="flex:1">
+    <div class="wstitle">${plan.theme}</div><div class="wsdesc">${plan.desc}</div>
+    <div style="margin-top:8px;background:rgba(255,255,255,.1);border-radius:99px;height:5px;overflow:hidden"><div style="height:100%;width:${pct}%;background:var(--paw);border-radius:99px"></div></div>
+    <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,.5);margin-top:4px">${wd}/7 days complete</div>
+  </div></div>`;
 
-  plan.days.forEach((day, idx) => {
-    const dayNum = idx + 1;
-    const isDone = isDayComplete(week, dayNum);
-    const isToday = week === todayWeek && dayNum === todayDay;
-    const isFuture = !isDone && !isToday;
-
-    const cardClass = isToday ? 'day-card today' : isDone ? 'day-card completed' : 'day-card';
-    const numDisplay = isDone ? '✓' : dayNum;
-
-    let badge = '';
-    if (isToday) badge = '<span class="day-badge today-badge">Today</span>';
-    else if (isDone) badge = '<span class="day-badge done-badge">Done ✓</span>';
-
-    const onclick = (isToday || isDone) ? `onclick="openLesson('${day.category}','${day.title}',${week},${dayNum})"` : 
-                    isFuture ? `onclick="showToast('Complete today first to unlock Day ${dayNum}')"` : '';
-
-    html += `
-      <div class="${cardClass}" ${onclick}>
-        <div class="day-num" style="${isDone?'background:var(--success);color:white':isToday?'background:var(--paw);color:white':''}">${numDisplay}</div>
-        <div class="day-info">
-          <div class="day-title" style="${isFuture&&!isDone?'color:var(--gray)':''}">${day.title}</div>
-          <div class="day-meta">⏱ ${day.duration} min · ${day.exercises.slice(0,2).join(' · ')}</div>
-        </div>
-        ${badge}
-      </div>
-    `;
+  plan.days.forEach((day,idx)=>{
+    const d=idx+1;
+    const done=isDone(w,d);
+    const isToday=w===tw&&d===td;
+    const future=!done&&!isToday;
+    const cc=isToday?'dcard today':done?'dcard done':'dcard';
+    const nc=isToday?'dnum tn':done?'dnum dn':'dnum';
+    const nt=done?'✓':d;
+    let badge='';
+    if(isToday) badge='<span class="dbadge db-t">Today</span>';
+    else if(done) badge='<span class="dbadge db-d">Done ✓</span>';
+    else if(future) badge='<span class="dbadge db-l">Upcoming</span>';
+    const oc=(isToday||done)?`onclick="openLesson('${day.c}','${day.t}',${w},${d})"`:
+      `onclick="toast('Complete today first to unlock this day')"`;
+    html+=`<div class="${cc}" ${oc}>
+      <div class="${nc}">${nt}</div>
+      <div class="dinfo"><div class="dtitle ${future&&!done?'muted':''}">${day.t}</div><div class="dmeta">⏱ ${day.d} min · ${day.e.slice(0,2).join(' · ')}</div></div>
+      ${badge}
+    </div>`;
   });
-
-  list.innerHTML = html;
+  list.innerHTML=html;
 }
 
-
-// ══════════════════════════════════════
-// PROGRESS-BASED UNLOCK SYSTEM
-// ══════════════════════════════════════
-
-const DAYS_TO_UNLOCK = 5; // days needed to unlock next week
-
-function getCompletedDays() {
-  return JSON.parse(localStorage.getItem('pp_completed_days') || '[]');
+// ── PLAN COMPLETE ──────────────────────────────────────────
+function showComplete(){
+  if(document.getElementById('cpbanner')) return;
+  const dog=S.dn||'Buddy';
+  const b=document.createElement('div');
+  b.id='cpbanner';
+  b.style.cssText='position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#2C1A0E,#4A2A10);color:white;border-radius:20px;padding:20px 24px;width:calc(100% - 40px);max-width:370px;box-shadow:0 8px 32px rgba(0,0,0,.3);z-index:999;text-align:center;border:2px solid rgba(232,87,42,.4)';
+  b.innerHTML=`<div style="font-size:40px;margin-bottom:10px">🎓</div>
+    <div style="font-family:'Instrument Serif',serif;font-size:20px;color:white;margin-bottom:8px">${dog} completed the full plan!</div>
+    <div style="font-size:13px;color:rgba(255,255,255,.6);line-height:1.6;margin-bottom:16px">Amazing progress! The AI is ready to generate your next advanced plan.</div>
+    <div style="background:var(--paw);border-radius:99px;padding:12px 24px;font-size:14px;font-weight:800;cursor:pointer" onclick="resetApp()">🤖 Generate Plan 2 →</div>
+    <div style="font-size:11px;color:rgba(255,255,255,.3);margin-top:8px;cursor:pointer" onclick="this.parentElement.remove()">✕ Dismiss</div>`;
+  document.body.appendChild(b);
 }
 
-function markDayComplete(week, day) {
-  const completed = getCompletedDays();
-  const key = `w${week}d${day}`;
-  if (!completed.includes(key)) {
-    completed.push(key);
-    localStorage.setItem('pp_completed_days', JSON.stringify(completed));
-  }
-  updateStreak();
-  checkWeekUnlock(week);
-  showToast('🔥 Day complete! Keep going!');
-}
+function resetApp(){ if(confirm('Sign out and reset your progress?')){ localStorage.clear(); location.reload(); } }
 
-function isDayComplete(week, day) {
-  return getCompletedDays().includes(`w${week}d${day}`);
-}
-
-function getWeekCompletedCount(week) {
-  const completed = getCompletedDays();
-  return completed.filter(k => k.startsWith(`w${week}d`)).length;
-}
-
-function isWeekUnlocked(week) {
-  if (week === 1) return true;
-  const prevWeekDone = getWeekCompletedCount(week - 1);
-  return prevWeekDone >= DAYS_TO_UNLOCK;
-}
-
-function checkWeekUnlock(currentWeek) {
-  const nextWeek = currentWeek + 1;
-  if (nextWeek <= 4 && isWeekUnlocked(nextWeek)) {
-    showToast(`🎉 Week ${nextWeek} unlocked! New challenges await!`);
-  }
-}
-
-function updateStreak() {
-  const completed = getCompletedDays();
-  const streakEl = document.querySelector('.streak-num');
-  if (streakEl) {
-    streakEl.textContent = '🔥 ' + completed.length;
-  }
-}
-
-function getTodayWeekDay() {
-  const completed = getCompletedDays();
-  const totalDone = completed.length;
-  const week = Math.min(Math.floor(totalDone / 7) + 1, 4);
-  const day = Math.min((totalDone % 7) + 1, 7);
-  return { week, day };
-}
-
-// Override completeLesson to track progress
-function completeLesson() {
-  const w = state.currentWeek || 1;
-  const d = state.currentDay || 1;
-  markDayComplete(w, d);
-
-  // Advance to next day
-  const next = getTodayWeekDay();
-  state.currentWeek = next.week;
-  state.currentDay = next.day;
-
-  // Update home card
-  updateHomeCard();
-
-  setTimeout(() => _origGoTo('s-home'), 600);
-}
-
-function updateHomeCard() {
-  const { week, day } = getTodayWeekDay();
-  const weekPlan = WEEK_PLANS[week];
-  if (!weekPlan) return;
-
-  const dayPlan = weekPlan.days[day - 1];
-  if (!dayPlan) return;
-
-  const labelEl = document.querySelector('.today-label span');
-  const titleEl = document.querySelector('.today-title');
-  const metaEl = document.querySelector('.today-meta');
-
-  const totalDay = (week - 1) * 7 + day;
-  if (labelEl) labelEl.textContent = `Day ${totalDay} of 28 · Week ${week}`;
-  if (titleEl) titleEl.textContent = dayPlan.title;
-  if (metaEl) metaEl.textContent = `⏱ ${dayPlan.duration} min · ${dayPlan.exercises.length} exercises · ${state.dogBreed || 'Dog'} tips`;
-
-  state.currentCategory = dayPlan.category;
-  state.currentLessonTitle = dayPlan.title;
-}
-
-
-// ══════════════════════════════════════
-// PLAN COMPLETION & RENEWAL HOOK
-// ══════════════════════════════════════
-
-function checkPlanComplete() {
-  let totalDone = 0;
-  for (let w = 1; w <= 4; w++) {
-    totalDone += getWeekCompletedCount(w);
-  }
-  if (totalDone >= 28) {
-    setTimeout(() => showPlanComplete(), 1000);
-  }
-}
-
-function showPlanComplete() {
-  const dogName = state.dogName || 'Buddy';
-  const breed = state.dogBreed || 'your dog';
-  const el = document.getElementById('s-home');
-  if (!el) return;
-
-  const banner = document.createElement('div');
-  banner.style.cssText = `
-    position:fixed;bottom:90px;left:50%;transform:translateX(-50%);
-    background:linear-gradient(135deg,#2C1A0E,#4A2A10);
-    color:white;border-radius:20px;padding:20px 24px;
-    width:calc(100% - 48px);max-width:370px;
-    box-shadow:0 8px 32px rgba(0,0,0,.3);
-    z-index:999;text-align:center;
-    border:2px solid rgba(232,87,42,.4);
-  `;
-  banner.innerHTML = `
-    <div style="font-size:40px;margin-bottom:10px">🎓</div>
-    <div style="font-family:'Instrument Serif',serif;font-size:20px;color:white;margin-bottom:8px">${dogName} completed the full plan!</div>
-    <div style="font-size:13px;color:rgba(255,255,255,.6);line-height:1.6;margin-bottom:16px">
-      Amazing progress with your ${breed}. The AI is generating your next advanced plan now...
-    </div>
-    <div style="background:var(--paw);border-radius:99px;padding:12px 24px;font-size:14px;font-weight:800;cursor:pointer" onclick="this.parentElement.remove();localStorage.clear();location.reload()">
-      🤖 Generate Plan 2 →
-    </div>
-    <div style="font-size:11px;color:rgba(255,255,255,.3);margin-top:10px">Tap to restart with an advanced program</div>
-  `;
-  document.body.appendChild(banner);
-}
-
-// Call on init
-window.addEventListener('load', () => {
-  setTimeout(checkPlanComplete, 3000);
+// ── INIT ───────────────────────────────────────────────────
+window.addEventListener('load',()=>{
+  updateTime();
+  setInterval(updateTime,30000);
+  setTimeout(()=>{
+    if(!S.on){
+      if(S.dn) document.getElementById('dog-name').value=S.dn;
+      goTo('s-quiz1');
+    } else {
+      const dn=S.dn||'Buddy';
+      const db=S.db||'Golden Retriever';
+      const el=id=>document.getElementById(id);
+      if(el('h-dog-name')) el('h-dog-name').textContent=dn;
+      if(el('p-name')) el('p-name').textContent=dn+"'s Owner";
+      if(el('p-dog')) el('p-dog').textContent=dn+' — '+db;
+      if(el('q2n')) el('q2n').textContent=dn;
+      if(el('q3n')) el('q3n').textContent=dn;
+      if(el('gen-name')) el('gen-name').textContent=dn;
+      refreshHome(); updateSidebar();
+      goTo('s-home');
+      if(S.cd.length>=28) setTimeout(showComplete,2000);
+    }
+  },2000);
 });
-
 </script>
 </body>
 </html>
