@@ -902,10 +902,33 @@ const state = {
   onboarded: localStorage.getItem('pp_onboarded') === 'true',
 };
 
-// ── VALID CODES (substitua pelos códigos reais gerados na Hotmart) ──
+// ── VALID CODES ──
 const VALID_CODES = [
-  'PAWPATH-2024', 'PAWPATH-DEMO', 'PAWPATH-ACCESS',
-  // Adicione aqui os códigos reais gerados pela Hotmart
+  'PAWPATH-ALPHA01',
+  'PAWPATH-ALPHA02',
+  'PAWPATH-ALPHA03',
+  'PAWPATH-ALPHA04',
+  'PAWPATH-ALPHA05',
+  'PAWPATH-ALPHA06',
+  'PAWPATH-ALPHA07',
+  'PAWPATH-ALPHA08',
+  'PAWPATH-ALPHA09',
+  'PAWPATH-ALPHA10',
+  'PAWPATH-ALPHA11',
+  'PAWPATH-ALPHA12',
+  'PAWPATH-ALPHA13',
+  'PAWPATH-ALPHA14',
+  'PAWPATH-ALPHA15',
+  'PAWPATH-ALPHA16',
+  'PAWPATH-ALPHA17',
+  'PAWPATH-ALPHA18',
+  'PAWPATH-ALPHA19',
+  'PAWPATH-ALPHA20',
+  'PAWPATH-VIP001',
+  'PAWPATH-VIP002',
+  'PAWPATH-VIP003',
+  'PAWPATH-VIP004',
+  'PAWPATH-VIP005',
 ];
 
 // ── NAVIGATION ──
@@ -1023,9 +1046,9 @@ window.addEventListener('load', () => {
 
   // Splash → decide route
   setTimeout(() => {
-    if (!state.unlocked) {
-      goTo('s-access');
-    } else if (!state.onboarded) {
+    if (!state.onboarded) {
+      localStorage.setItem('pp_unlocked', 'true');
+      state.unlocked = true;
       document.getElementById('dog-name').value = state.dogName;
       goTo('s-quiz1');
     } else {
