@@ -26,6 +26,320 @@ const manifest = {
 const blob = new Blob([JSON.stringify(manifest)], {type: 'application/json'});
 const manifestURL = URL.createObjectURL(blob);
 document.write('<link rel="manifest" href="' + manifestURL + '">');
+
+// ══════════════════════════════════════
+// WEEKLY PLAN SYSTEM
+// ══════════════════════════════════════
+
+const WEEK_PLANS = {
+  1: {
+    theme: 'Foundation Week',
+    description: 'Building focus and basic commands',
+    icon: '🎯',
+    days: [
+      { title: 'Name Recognition & Focus', duration: 15, category: 'basic_commands', exercises: ['Name game', 'Eye contact', 'Sit intro'] },
+      { title: 'Sit Command Deep Dive', duration: 15, category: 'basic_commands', exercises: ['Sit with treat lure', 'Sit with hand signal', 'Sit at distance'] },
+      { title: 'Stay Basics', duration: 15, category: 'basic_commands', exercises: ['Wait 3 seconds', 'Wait 10 seconds', 'Release command'] },
+      { title: 'Leash Introduction', duration: 15, category: 'leash_training', exercises: ['Leash on/off game', 'Walk beside you', 'Stop & reward'] },
+      { title: 'Come Command', duration: 15, category: 'basic_commands', exercises: ['Come from 1 meter', 'Come from 3 meters', 'Come with distraction'] },
+      { title: 'Down Command', duration: 15, category: 'basic_commands', exercises: ['Lure to ground', 'Hand signal down', 'Down & stay'] },
+      { title: 'Week 1 Review', duration: 20, category: 'basic_commands', exercises: ['Sit', 'Stay', 'Come', 'Down combo'] },
+    ]
+  },
+  2: {
+    theme: 'Consistency Week',
+    description: 'Strengthening commands with distractions',
+    icon: '💪',
+    days: [
+      { title: 'Sit in New Locations', duration: 15, category: 'basic_commands', exercises: ['Sit in kitchen', 'Sit in garden', 'Sit near door'] },
+      { title: 'Loose Leash Walking', duration: 20, category: 'leash_training', exercises: ['5 steps no pull', 'Change direction', 'Stop & go game'] },
+      { title: 'Leave It Command', duration: 15, category: 'basic_commands', exercises: ['Leave treat on floor', 'Leave toy', 'Leave food on walk'] },
+      { title: 'Down & Stay Extended', duration: 15, category: 'basic_commands', exercises: ['Down 30 seconds', 'Down while you move', 'Down with distractions'] },
+      { title: 'Greeting Manners', duration: 15, category: 'problem_behaviors', exercises: ['No jump training', 'Four paws rule', 'Calm hello'] },
+      { title: 'Recall Game', duration: 15, category: 'basic_commands', exercises: ['Hide & come', 'Come from other room', 'Come with toys around'] },
+      { title: 'Week 2 Review', duration: 20, category: 'basic_commands', exercises: ['All commands combo', 'Outside practice'] },
+    ]
+  },
+  3: {
+    theme: 'Real World Week',
+    description: 'Training outside with real distractions',
+    icon: '🌍',
+    days: [
+      { title: 'Outdoor Sit & Stay', duration: 20, category: 'basic_commands', exercises: ['Sit at park entrance', 'Stay with dogs nearby', 'Come from distance'] },
+      { title: 'Walk with Other Dogs', duration: 20, category: 'leash_training', exercises: ['Pass another dog calmly', 'Focus on you', 'No lunging'] },
+      { title: 'Impulse Control', duration: 15, category: 'basic_commands', exercises: ['Wait at door', 'Wait for food bowl', 'Wait before crossing street'] },
+      { title: 'Behavior Fix Day', duration: 20, category: 'problem_behaviors', exercises: ['Target specific problem', 'Practice scenario', 'Reward calm response'] },
+      { title: 'Socialization Walk', duration: 25, category: 'socialization', exercises: ['Meet 1 new person', 'Hear new sounds', 'New surface walking'] },
+      { title: 'Off Leash Recall', duration: 15, category: 'leash_training', exercises: ['Long line recall', '10 meter come', 'Come past distractions'] },
+      { title: 'Week 3 Review', duration: 20, category: 'basic_commands', exercises: ['Full outdoor session', 'All commands outside'] },
+    ]
+  },
+  4: {
+    theme: 'Mastery Week',
+    description: 'Polishing everything and adding fun tricks',
+    icon: '⭐',
+    days: [
+      { title: 'Commands Without Treats', duration: 15, category: 'basic_commands', exercises: ['Sit on verbal only', 'Stay on verbal only', 'Come on verbal only'] },
+      { title: 'High Five Trick', duration: 15, category: 'tricks', exercises: ['Paw touch', 'High five motion', 'High five on cue'] },
+      { title: 'Spin Trick', duration: 15, category: 'tricks', exercises: ['Lure circle', 'Spin on cue', 'Spin both directions'] },
+      { title: 'Full Walk Test', duration: 25, category: 'leash_training', exercises: ['30 min perfect walk', 'Pass 3 distractions', 'Sit at every corner'] },
+      { title: 'Behavior Proof Day', duration: 20, category: 'problem_behaviors', exercises: ['Test main problem fixed', 'Real scenario practice', 'Celebrate progress'] },
+      { title: 'Play Dead Trick', duration: 15, category: 'tricks', exercises: ['Down & roll', 'Stay still', 'Bang! cue'] },
+      { title: 'Graduation Day! 🎓', duration: 30, category: 'tricks', exercises: ['Show all commands', 'Do 2 tricks', 'Celebrate with your dog!'] },
+    ]
+  }
+};
+
+let currentPlanWeek = 1;
+const TODAY_DAY = 7; // simulating day 7 of week 1
+
+function openPlanScreen() {
+  currentPlanWeek = 1;
+  renderWeekPlan(1);
+  _origGoTo('s-plan');
+}
+
+function switchWeek(week) {
+  currentPlanWeek = week;
+  // Update tabs
+  document.querySelectorAll('.week-tab').forEach((t, i) => {
+    t.classList.toggle('active', i + 1 === week);
+  });
+  renderWeekPlan(week);
+}
+
+function renderWeekPlan(week) {
+  const plan = WEEK_PLANS[week];
+  if (!plan) return;
+  const breed = state.dogBreed || 'your dog';
+  const unlocked = isWeekUnlocked(week);
+  const weekDone = getWeekCompletedCount(week);
+  const { week: todayWeek, day: todayDay } = getTodayWeekDay();
+
+  const sub = document.getElementById('plan-sub');
+  if (sub) sub.textContent = `Week ${week} of 4 · ${breed}`;
+
+  const list = document.getElementById('days-list');
+  if (!list) return;
+
+  // Locked week message
+  if (!unlocked) {
+    const prevDone = getWeekCompletedCount(week - 1);
+    const needed = DAYS_TO_UNLOCK - prevDone;
+    list.innerHTML = `
+      <div style="text-align:center;padding:40px 20px">
+        <div style="font-size:56px;margin-bottom:16px">🔒</div>
+        <div style="font-family:'Instrument Serif',serif;font-size:22px;color:var(--ink);margin-bottom:10px">Week ${week} is locked</div>
+        <div style="font-size:14px;font-weight:600;color:var(--gray);line-height:1.6;margin-bottom:24px">Complete ${needed} more day${needed > 1 ? 's' : ''} in Week ${week-1} to unlock this week.</div>
+        <div style="background:var(--bone);border-radius:16px;padding:16px;text-align:left">
+          <div style="font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--gray);margin-bottom:10px">Your Week ${week-1} Progress</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            ${Array.from({length:7},(_,i)=>`<div style="width:32px;height:32px;border-radius:8px;background:${isDayComplete(week-1,i+1)?'var(--paw)':'var(--stone)'};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:white">${isDayComplete(week-1,i+1)?'✓':i+1}</div>`).join('')}
+          </div>
+          <div style="margin-top:10px;font-size:13px;font-weight:700;color:var(--paw)">${prevDone}/${DAYS_TO_UNLOCK} days completed</div>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  // Progress bar for current week
+  const progressPct = Math.round((weekDone / 7) * 100);
+
+  let html = `
+    <div class="week-summary">
+      <div class="ws-icon">${plan.icon}</div>
+      <div style="flex:1">
+        <div class="ws-title">${plan.theme}</div>
+        <div class="ws-desc">${plan.description}</div>
+        <div style="margin-top:8px;background:rgba(255,255,255,.1);border-radius:99px;height:5px;overflow:hidden">
+          <div style="height:100%;width:${progressPct}%;background:var(--paw);border-radius:99px;transition:width .4s"></div>
+        </div>
+        <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,.5);margin-top:4px">${weekDone}/7 days complete</div>
+      </div>
+    </div>
+  `;
+
+  plan.days.forEach((day, idx) => {
+    const dayNum = idx + 1;
+    const isDone = isDayComplete(week, dayNum);
+    const isToday = week === todayWeek && dayNum === todayDay;
+    const isFuture = !isDone && !isToday;
+
+    const cardClass = isToday ? 'day-card today' : isDone ? 'day-card completed' : 'day-card';
+    const numDisplay = isDone ? '✓' : dayNum;
+
+    let badge = '';
+    if (isToday) badge = '<span class="day-badge today-badge">Today</span>';
+    else if (isDone) badge = '<span class="day-badge done-badge">Done ✓</span>';
+
+    const onclick = (isToday || isDone) ? `onclick="openLesson('${day.category}','${day.title}',${week},${dayNum})"` : 
+                    isFuture ? `onclick="showToast('Complete today first to unlock Day ${dayNum}')"` : '';
+
+    html += `
+      <div class="${cardClass}" ${onclick}>
+        <div class="day-num" style="${isDone?'background:var(--success);color:white':isToday?'background:var(--paw);color:white':''}">${numDisplay}</div>
+        <div class="day-info">
+          <div class="day-title" style="${isFuture&&!isDone?'color:var(--gray)':''}">${day.title}</div>
+          <div class="day-meta">⏱ ${day.duration} min · ${day.exercises.slice(0,2).join(' · ')}</div>
+        </div>
+        ${badge}
+      </div>
+    `;
+  });
+
+  list.innerHTML = html;
+}
+
+
+// ══════════════════════════════════════
+// PROGRESS-BASED UNLOCK SYSTEM
+// ══════════════════════════════════════
+
+const DAYS_TO_UNLOCK = 5; // days needed to unlock next week
+
+function getCompletedDays() {
+  return JSON.parse(localStorage.getItem('pp_completed_days') || '[]');
+}
+
+function markDayComplete(week, day) {
+  const completed = getCompletedDays();
+  const key = `w${week}d${day}`;
+  if (!completed.includes(key)) {
+    completed.push(key);
+    localStorage.setItem('pp_completed_days', JSON.stringify(completed));
+  }
+  updateStreak();
+  checkWeekUnlock(week);
+  showToast('🔥 Day complete! Keep going!');
+}
+
+function isDayComplete(week, day) {
+  return getCompletedDays().includes(`w${week}d${day}`);
+}
+
+function getWeekCompletedCount(week) {
+  const completed = getCompletedDays();
+  return completed.filter(k => k.startsWith(`w${week}d`)).length;
+}
+
+function isWeekUnlocked(week) {
+  if (week === 1) return true;
+  const prevWeekDone = getWeekCompletedCount(week - 1);
+  return prevWeekDone >= DAYS_TO_UNLOCK;
+}
+
+function checkWeekUnlock(currentWeek) {
+  const nextWeek = currentWeek + 1;
+  if (nextWeek <= 4 && isWeekUnlocked(nextWeek)) {
+    showToast(`🎉 Week ${nextWeek} unlocked! New challenges await!`);
+  }
+}
+
+function updateStreak() {
+  const completed = getCompletedDays();
+  const streakEl = document.querySelector('.streak-num');
+  if (streakEl) {
+    streakEl.textContent = '🔥 ' + completed.length;
+  }
+}
+
+function getTodayWeekDay() {
+  const completed = getCompletedDays();
+  const totalDone = completed.length;
+  const week = Math.min(Math.floor(totalDone / 7) + 1, 4);
+  const day = Math.min((totalDone % 7) + 1, 7);
+  return { week, day };
+}
+
+// Override completeLesson to track progress
+function completeLesson() {
+  const w = state.currentWeek || 1;
+  const d = state.currentDay || 1;
+  markDayComplete(w, d);
+
+  // Advance to next day
+  const next = getTodayWeekDay();
+  state.currentWeek = next.week;
+  state.currentDay = next.day;
+
+  // Update home card
+  updateHomeCard();
+
+  setTimeout(() => _origGoTo('s-home'), 600);
+}
+
+function updateHomeCard() {
+  const { week, day } = getTodayWeekDay();
+  const weekPlan = WEEK_PLANS[week];
+  if (!weekPlan) return;
+
+  const dayPlan = weekPlan.days[day - 1];
+  if (!dayPlan) return;
+
+  const labelEl = document.querySelector('.today-label span');
+  const titleEl = document.querySelector('.today-title');
+  const metaEl = document.querySelector('.today-meta');
+
+  const totalDay = (week - 1) * 7 + day;
+  if (labelEl) labelEl.textContent = `Day ${totalDay} of 28 · Week ${week}`;
+  if (titleEl) titleEl.textContent = dayPlan.title;
+  if (metaEl) metaEl.textContent = `⏱ ${dayPlan.duration} min · ${dayPlan.exercises.length} exercises · ${state.dogBreed || 'Dog'} tips`;
+
+  state.currentCategory = dayPlan.category;
+  state.currentLessonTitle = dayPlan.title;
+}
+
+
+// ══════════════════════════════════════
+// PLAN COMPLETION & RENEWAL HOOK
+// ══════════════════════════════════════
+
+function checkPlanComplete() {
+  let totalDone = 0;
+  for (let w = 1; w <= 4; w++) {
+    totalDone += getWeekCompletedCount(w);
+  }
+  if (totalDone >= 28) {
+    setTimeout(() => showPlanComplete(), 1000);
+  }
+}
+
+function showPlanComplete() {
+  const dogName = state.dogName || 'Buddy';
+  const breed = state.dogBreed || 'your dog';
+  const el = document.getElementById('s-home');
+  if (!el) return;
+
+  const banner = document.createElement('div');
+  banner.style.cssText = `
+    position:fixed;bottom:90px;left:50%;transform:translateX(-50%);
+    background:linear-gradient(135deg,#2C1A0E,#4A2A10);
+    color:white;border-radius:20px;padding:20px 24px;
+    width:calc(100% - 48px);max-width:370px;
+    box-shadow:0 8px 32px rgba(0,0,0,.3);
+    z-index:999;text-align:center;
+    border:2px solid rgba(232,87,42,.4);
+  `;
+  banner.innerHTML = `
+    <div style="font-size:40px;margin-bottom:10px">🎓</div>
+    <div style="font-family:'Instrument Serif',serif;font-size:20px;color:white;margin-bottom:8px">${dogName} completed the full plan!</div>
+    <div style="font-size:13px;color:rgba(255,255,255,.6);line-height:1.6;margin-bottom:16px">
+      Amazing progress with your ${breed}. The AI is generating your next advanced plan now...
+    </div>
+    <div style="background:var(--paw);border-radius:99px;padding:12px 24px;font-size:14px;font-weight:800;cursor:pointer" onclick="this.parentElement.remove();localStorage.clear();location.reload()">
+      🤖 Generate Plan 2 →
+    </div>
+    <div style="font-size:11px;color:rgba(255,255,255,.3);margin-top:10px">Tap to restart with an advanced program</div>
+  `;
+  document.body.appendChild(banner);
+}
+
+// Call on init
+window.addEventListener('load', () => {
+  setTimeout(checkPlanComplete, 3000);
+});
+
 </script>
 
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Manrope:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -502,9 +816,216 @@ body{
   white-space:nowrap;z-index:999;
 }
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ══════════════════════════════════════
+   SCREEN: WEEKLY PLAN
+══════════════════════════════════════ */
+#s-plan{background:var(--cream)}
+.plan-header{padding:20px 20px 16px;flex-shrink:0}
+.plan-title{font-family:'Instrument Serif',serif;font-size:28px;color:var(--ink);margin-bottom:4px}
+.plan-sub{font-size:14px;font-weight:500;color:var(--gray)}
+.week-tabs{display:flex;gap:8px;padding:0 20px 16px;overflow-x:auto;scrollbar-width:none;flex-shrink:0}
+.week-tabs::-webkit-scrollbar{display:none}
+.week-tab{
+  flex-shrink:0;padding:8px 18px;border-radius:99px;
+  font-size:13px;font-weight:800;cursor:pointer;
+  background:var(--bone);color:var(--gray);border:1.5px solid var(--stone);
+  transition:all .15s;-webkit-tap-highlight-color:transparent;
+}
+.week-tab.active{background:var(--paw);color:white;border-color:var(--paw)}
+.days-list{padding:0 20px;flex:1;overflow-y:auto;padding-bottom:20px}
+.day-card{
+  background:var(--white);border-radius:var(--r-lg);border:1px solid var(--stone);
+  padding:16px 18px;margin-bottom:12px;cursor:pointer;
+  display:flex;align-items:center;gap:14px;
+  transition:all .15s;-webkit-tap-highlight-color:transparent;
+}
+.day-card:active{background:var(--bone)}
+.day-card.today{border-color:var(--paw);border-width:2px;background:var(--warm)}
+.day-card.completed{background:var(--bone);opacity:.75}
+.day-num{
+  width:42px;height:42px;border-radius:50%;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-size:15px;font-weight:900;
+  background:var(--bone);color:var(--gray);
+}
+.day-card.today .day-num{background:var(--paw);color:white}
+.day-card.completed .day-num{background:var(--success);color:white}
+.day-info{flex:1}
+.day-title{font-size:15px;font-weight:800;color:var(--ink);margin-bottom:3px}
+.day-card.completed .day-title{color:var(--gray)}
+.day-meta{font-size:12px;font-weight:600;color:var(--gray)}
+.day-badge{
+  font-size:11px;font-weight:800;padding:3px 10px;border-radius:99px;flex-shrink:0;
+}
+.day-badge.today-badge{background:var(--paw);color:white}
+.day-badge.done-badge{background:var(--success);color:white}
+.day-badge.locked-badge{background:var(--stone);color:var(--gray)}
+.week-summary{
+  background:var(--bark);border-radius:var(--r-lg);padding:16px 18px;
+  margin-bottom:16px;display:flex;align-items:center;gap:14px;
+}
+.ws-icon{font-size:28px}
+.ws-title{font-size:15px;font-weight:800;color:white;margin-bottom:3px}
+.ws-desc{font-size:12px;font-weight:600;color:rgba(255,255,255,.5)}
+
+/* ══════════════════════════════════════
+   RESPONSIVE — DESKTOP & TABLET
+══════════════════════════════════════ */
+
+/* Desktop wrapper */
+@media(min-width:768px){
+  body{
+    background:#E8E0D4;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:flex-start;
+    padding:32px 24px 48px;
+    min-height:100vh;
+    overflow:auto;
+  }
+  #app{
+    width:390px;
+    height:844px;
+    border-radius:52px;
+    box-shadow:0 32px 80px rgba(0,0,0,.28),inset 0 0 0 2px rgba(255,255,255,.3);
+    overflow:hidden;
+    border:10px solid #1A1A1A;
+    flex-shrink:0;
+  }
+  .desktop-header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    width:390px;
+    margin-bottom:20px;
+  }
+  .desktop-logo{
+    font-family:'Instrument Serif',serif;
+    font-size:22px;
+    color:#2C1A0E;
+    font-weight:400;
+  }
+  .desktop-logo span{color:var(--paw)}
+  .desktop-tagline{
+    font-size:12px;font-weight:700;
+    color:#999;letter-spacing:.06em;
+    text-transform:uppercase;
+  }
+  .desktop-footer{
+    width:390px;
+    margin-top:20px;
+    text-align:center;
+    font-size:11px;
+    font-weight:600;
+    color:#AAA;
+    letter-spacing:.04em;
+  }
+}
+
+/* Mobile — full screen */
+@media(max-width:767px){
+  body{padding:0;background:var(--cream)}
+  #app{
+    width:100%;
+    height:100vh;
+    height:100dvh;
+    border-radius:0;
+    border:none;
+    box-shadow:none;
+  }
+  .desktop-header,.desktop-footer{display:none}
+}
+
+/* Tablet adjustment */
+@media(min-width:768px) and (max-width:1023px){
+  body{padding:20px 16px 40px}
+}
+
+/* Large desktop — side panel */
+@media(min-width:1100px){
+  body{
+    flex-direction:row;
+    align-items:flex-start;
+    justify-content:center;
+    gap:48px;
+    padding:48px 40px;
+  }
+  .desktop-sidebar{
+    display:flex;
+    flex-direction:column;
+    gap:20px;
+    width:280px;
+    flex-shrink:0;
+    padding-top:80px;
+  }
+  .sidebar-card{
+    background:white;
+    border-radius:20px;
+    padding:20px;
+    box-shadow:0 2px 16px rgba(0,0,0,.06);
+  }
+  .sidebar-title{
+    font-size:11px;font-weight:800;
+    letter-spacing:.1em;text-transform:uppercase;
+    color:#AAA;margin-bottom:12px;
+  }
+  .sidebar-stat{
+    display:flex;align-items:center;gap:10px;
+    padding:8px 0;border-bottom:1px solid #F0EDE8;
+  }
+  .sidebar-stat:last-child{border-bottom:none}
+  .sidebar-stat-icon{font-size:20px;width:28px;text-align:center}
+  .sidebar-stat-label{font-size:13px;font-weight:600;color:#666;flex:1}
+  .sidebar-stat-val{font-size:14px;font-weight:800;color:#1A1A1A}
+  .sidebar-feature{
+    display:flex;align-items:flex-start;gap:10px;padding:6px 0;
+  }
+  .sf-icon{font-size:18px;flex-shrink:0;margin-top:1px}
+  .sf-text{font-size:13px;font-weight:600;color:#666;line-height:1.4}
+}
+
+@media(min-width:1100px){
+  .desktop-header,.desktop-footer{display:none}
+  .desktop-sidebar{display:flex}
+}
+
+@media(max-width:1099px){
+  .desktop-sidebar{display:none}
+}
 </style>
 </head>
 <body>
+<!-- Desktop header (only shows on desktop) -->
+<div class="desktop-header">
+  <div class="desktop-logo">Paw<span>Path</span> 🐾</div>
+  <div class="desktop-tagline">AI Dog Training</div>
+</div>
+
+<!-- Desktop sidebar (only shows on large screens) -->
+<div class="desktop-sidebar">
+  <div class="sidebar-card">
+    <div class="sidebar-title">Your Progress</div>
+    <div class="sidebar-stat"><span class="sidebar-stat-icon">🔥</span><span class="sidebar-stat-label">Current Streak</span><span class="sidebar-stat-val">7 days</span></div>
+    <div class="sidebar-stat"><span class="sidebar-stat-icon">✅</span><span class="sidebar-stat-label">Lessons Done</span><span class="sidebar-stat-val">23</span></div>
+    <div class="sidebar-stat"><span class="sidebar-stat-icon">📅</span><span class="sidebar-stat-label">Week</span><span class="sidebar-stat-val">1 of 4</span></div>
+    <div class="sidebar-stat"><span class="sidebar-stat-icon">🏆</span><span class="sidebar-stat-label">Programs</span><span class="sidebar-stat-val">2 active</span></div>
+  </div>
+  <div class="sidebar-card">
+    <div class="sidebar-title">What's Included</div>
+    <div class="sidebar-feature"><span class="sf-icon">🤖</span><span class="sf-text">AI-personalized 4-week training plan</span></div>
+    <div class="sidebar-feature"><span class="sf-icon">🎥</span><span class="sf-text">30+ expert lessons with step-by-step instructions</span></div>
+    <div class="sidebar-feature"><span class="sf-icon">🔧</span><span class="sf-text">5 behavior fix programs (7–14 days)</span></div>
+    <div class="sidebar-feature"><span class="sf-icon">🔥</span><span class="sf-text">Daily streak tracking & reminders</span></div>
+    <div class="sidebar-feature"><span class="sf-icon">🎵</span><span class="sf-text">Built-in clicker tool</span></div>
+  </div>
+  <div class="sidebar-card" style="background:linear-gradient(135deg,#2C1A0E,#4A2A10);color:white">
+    <div class="sidebar-title" style="color:rgba(255,255,255,.4)">Need Help?</div>
+    <div style="font-size:13px;font-weight:600;color:rgba(255,255,255,.7);line-height:1.6">Access your members area for support, manuals, and updates.</div>
+  </div>
+</div>
+
 <div id="app">
 
 <!-- ══════════════════════════════════
@@ -715,7 +1236,10 @@ body{
     <div class="section-title anim-fade-1">Today's AI Plan 🎯</div>
   </div>
   <div class="today-card anim-fade-2" onclick="openLesson('leash_training','Leash Confidence Walk',1,7)" style="flex-shrink:0">
-    <div class="today-label">Day 7 of 28 · Week 1</div>
+    <div class="today-label" style="display:flex;justify-content:space-between;align-items:center">
+      <span>Day 7 of 28 · Week 1</span>
+      <span onclick="event.stopPropagation();openPlanScreen()" style="background:rgba(255,255,255,.18);padding:2px 10px;border-radius:99px;font-size:10px;cursor:pointer">See all →</span>
+    </div>
     <div class="today-title">Leash Confidence Walk</div>
     <div class="today-meta">⏱ 15 min · 3 exercises · Golden Retriever tips</div>
     <div class="today-exercises">
@@ -782,10 +1306,10 @@ body{
   <div style="height:20px;flex-shrink:0"></div>
 
   <div class="nav-bar">
-    <div class="nav-item active" onclick="goTo('s-home')"><div class="nav-icon">🏠</div><div class="nav-label">Home</div></div>
-    <div class="nav-item" onclick="goTo('s-lesson')"><div class="nav-icon">📚</div><div class="nav-label">Lessons</div></div>
-    <div class="nav-item" onclick="goTo('s-behaviors')"><div class="nav-icon">🔧</div><div class="nav-label">Fix</div></div>
-    <div class="nav-item" onclick="goTo('s-profile')"><div class="nav-icon">👤</div><div class="nav-label">Profile</div></div>
+    <div class="nav-item active" onclick="_origGoTo('s-home')"><div class="nav-icon">🏠</div><div class="nav-label">Home</div></div>
+    <div class="nav-item" onclick="openPlanScreen()"><div class="nav-icon">📅</div><div class="nav-label">Plan</div></div>
+    <div class="nav-item" onclick="_origGoTo('s-behaviors')"><div class="nav-icon">🔧</div><div class="nav-label">Fix</div></div>
+    <div class="nav-item" onclick="_origGoTo('s-profile')"><div class="nav-icon">👤</div><div class="nav-label">Profile</div></div>
   </div>
 </div>
 
@@ -851,10 +1375,10 @@ body{
     <div class="program-card"><div class="program-icon" style="background:#FDF4FF">😬</div><div style="flex:1"><div class="program-name">Stop Biting & Nipping</div><div class="program-desc">Teach bite inhibition and redirection — essential for puppies and young dogs.</div><div class="program-tags"><span class="program-tag">7 days</span></div></div><div class="program-arr">›</div></div>
   </div>
   <div class="nav-bar">
-    <div class="nav-item" onclick="goTo('s-home')"><div class="nav-icon">🏠</div><div class="nav-label">Home</div></div>
-    <div class="nav-item" onclick="goTo('s-lesson')"><div class="nav-icon">📚</div><div class="nav-label">Lessons</div></div>
+    <div class="nav-item" onclick="_origGoTo('s-home')"><div class="nav-icon">🏠</div><div class="nav-label">Home</div></div>
+    <div class="nav-item" onclick="openPlanScreen()"><div class="nav-icon">📅</div><div class="nav-label">Plan</div></div>
     <div class="nav-item active"><div class="nav-icon">🔧</div><div class="nav-label">Fix</div></div>
-    <div class="nav-item" onclick="goTo('s-profile')"><div class="nav-icon">👤</div><div class="nav-label">Profile</div></div>
+    <div class="nav-item" onclick="_origGoTo('s-profile')"><div class="nav-icon">👤</div><div class="nav-label">Profile</div></div>
   </div>
 </div>
 
@@ -900,7 +1424,32 @@ body{
   </div>
 </div>
 
+
+<!-- ══════════════════════════════════
+     WEEKLY PLAN
+══════════════════════════════════ -->
+<div class="screen" id="s-plan">
+  <div class="status-bar"><span id="plan-time">9:41</span><div class="status-right"><span>●●●</span><span>🔋</span></div></div>
+  <div class="plan-header" style="flex-shrink:0">
+    <div class="plan-title">Your Plan 📅</div>
+    <div class="plan-sub" id="plan-sub">Week 1 of 4 · Golden Retriever</div>
+  </div>
+  <div class="week-tabs" id="week-tabs" style="flex-shrink:0">
+    <div class="week-tab active" onclick="switchWeek(1)">Week 1</div>
+    <div class="week-tab" onclick="switchWeek(2)">Week 2</div>
+    <div class="week-tab" onclick="switchWeek(3)">Week 3</div>
+    <div class="week-tab" onclick="switchWeek(4)">Week 4</div>
+  </div>
+  <div class="days-list" id="days-list"></div>
+  <div class="nav-bar">
+    <div class="nav-item" onclick="_origGoTo('s-home')"><div class="nav-icon">🏠</div><div class="nav-label">Home</div></div>
+    <div class="nav-item active"><div class="nav-icon">📅</div><div class="nav-label">Plan</div></div>
+    <div class="nav-item" onclick="_origGoTo('s-behaviors')"><div class="nav-icon">🔧</div><div class="nav-label">Fix</div></div>
+    <div class="nav-item" onclick="_origGoTo('s-profile')"><div class="nav-icon">👤</div><div class="nav-label">Profile</div></div>
+  </div>
+</div>
 </div><!-- /app -->
+<div class="desktop-footer">PawPath · AI Dog Training · 2025–2026</div>
 
 <!-- Toast -->
 <div class="toast" id="toast"></div>
@@ -1227,6 +1776,320 @@ window.addEventListener('load', () => {
     }
   }, 2000);
 });
+
+// ══════════════════════════════════════
+// WEEKLY PLAN SYSTEM
+// ══════════════════════════════════════
+
+const WEEK_PLANS = {
+  1: {
+    theme: 'Foundation Week',
+    description: 'Building focus and basic commands',
+    icon: '🎯',
+    days: [
+      { title: 'Name Recognition & Focus', duration: 15, category: 'basic_commands', exercises: ['Name game', 'Eye contact', 'Sit intro'] },
+      { title: 'Sit Command Deep Dive', duration: 15, category: 'basic_commands', exercises: ['Sit with treat lure', 'Sit with hand signal', 'Sit at distance'] },
+      { title: 'Stay Basics', duration: 15, category: 'basic_commands', exercises: ['Wait 3 seconds', 'Wait 10 seconds', 'Release command'] },
+      { title: 'Leash Introduction', duration: 15, category: 'leash_training', exercises: ['Leash on/off game', 'Walk beside you', 'Stop & reward'] },
+      { title: 'Come Command', duration: 15, category: 'basic_commands', exercises: ['Come from 1 meter', 'Come from 3 meters', 'Come with distraction'] },
+      { title: 'Down Command', duration: 15, category: 'basic_commands', exercises: ['Lure to ground', 'Hand signal down', 'Down & stay'] },
+      { title: 'Week 1 Review', duration: 20, category: 'basic_commands', exercises: ['Sit', 'Stay', 'Come', 'Down combo'] },
+    ]
+  },
+  2: {
+    theme: 'Consistency Week',
+    description: 'Strengthening commands with distractions',
+    icon: '💪',
+    days: [
+      { title: 'Sit in New Locations', duration: 15, category: 'basic_commands', exercises: ['Sit in kitchen', 'Sit in garden', 'Sit near door'] },
+      { title: 'Loose Leash Walking', duration: 20, category: 'leash_training', exercises: ['5 steps no pull', 'Change direction', 'Stop & go game'] },
+      { title: 'Leave It Command', duration: 15, category: 'basic_commands', exercises: ['Leave treat on floor', 'Leave toy', 'Leave food on walk'] },
+      { title: 'Down & Stay Extended', duration: 15, category: 'basic_commands', exercises: ['Down 30 seconds', 'Down while you move', 'Down with distractions'] },
+      { title: 'Greeting Manners', duration: 15, category: 'problem_behaviors', exercises: ['No jump training', 'Four paws rule', 'Calm hello'] },
+      { title: 'Recall Game', duration: 15, category: 'basic_commands', exercises: ['Hide & come', 'Come from other room', 'Come with toys around'] },
+      { title: 'Week 2 Review', duration: 20, category: 'basic_commands', exercises: ['All commands combo', 'Outside practice'] },
+    ]
+  },
+  3: {
+    theme: 'Real World Week',
+    description: 'Training outside with real distractions',
+    icon: '🌍',
+    days: [
+      { title: 'Outdoor Sit & Stay', duration: 20, category: 'basic_commands', exercises: ['Sit at park entrance', 'Stay with dogs nearby', 'Come from distance'] },
+      { title: 'Walk with Other Dogs', duration: 20, category: 'leash_training', exercises: ['Pass another dog calmly', 'Focus on you', 'No lunging'] },
+      { title: 'Impulse Control', duration: 15, category: 'basic_commands', exercises: ['Wait at door', 'Wait for food bowl', 'Wait before crossing street'] },
+      { title: 'Behavior Fix Day', duration: 20, category: 'problem_behaviors', exercises: ['Target specific problem', 'Practice scenario', 'Reward calm response'] },
+      { title: 'Socialization Walk', duration: 25, category: 'socialization', exercises: ['Meet 1 new person', 'Hear new sounds', 'New surface walking'] },
+      { title: 'Off Leash Recall', duration: 15, category: 'leash_training', exercises: ['Long line recall', '10 meter come', 'Come past distractions'] },
+      { title: 'Week 3 Review', duration: 20, category: 'basic_commands', exercises: ['Full outdoor session', 'All commands outside'] },
+    ]
+  },
+  4: {
+    theme: 'Mastery Week',
+    description: 'Polishing everything and adding fun tricks',
+    icon: '⭐',
+    days: [
+      { title: 'Commands Without Treats', duration: 15, category: 'basic_commands', exercises: ['Sit on verbal only', 'Stay on verbal only', 'Come on verbal only'] },
+      { title: 'High Five Trick', duration: 15, category: 'tricks', exercises: ['Paw touch', 'High five motion', 'High five on cue'] },
+      { title: 'Spin Trick', duration: 15, category: 'tricks', exercises: ['Lure circle', 'Spin on cue', 'Spin both directions'] },
+      { title: 'Full Walk Test', duration: 25, category: 'leash_training', exercises: ['30 min perfect walk', 'Pass 3 distractions', 'Sit at every corner'] },
+      { title: 'Behavior Proof Day', duration: 20, category: 'problem_behaviors', exercises: ['Test main problem fixed', 'Real scenario practice', 'Celebrate progress'] },
+      { title: 'Play Dead Trick', duration: 15, category: 'tricks', exercises: ['Down & roll', 'Stay still', 'Bang! cue'] },
+      { title: 'Graduation Day! 🎓', duration: 30, category: 'tricks', exercises: ['Show all commands', 'Do 2 tricks', 'Celebrate with your dog!'] },
+    ]
+  }
+};
+
+let currentPlanWeek = 1;
+const TODAY_DAY = 7; // simulating day 7 of week 1
+
+function openPlanScreen() {
+  currentPlanWeek = 1;
+  renderWeekPlan(1);
+  _origGoTo('s-plan');
+}
+
+function switchWeek(week) {
+  currentPlanWeek = week;
+  // Update tabs
+  document.querySelectorAll('.week-tab').forEach((t, i) => {
+    t.classList.toggle('active', i + 1 === week);
+  });
+  renderWeekPlan(week);
+}
+
+function renderWeekPlan(week) {
+  const plan = WEEK_PLANS[week];
+  if (!plan) return;
+  const breed = state.dogBreed || 'your dog';
+  const unlocked = isWeekUnlocked(week);
+  const weekDone = getWeekCompletedCount(week);
+  const { week: todayWeek, day: todayDay } = getTodayWeekDay();
+
+  const sub = document.getElementById('plan-sub');
+  if (sub) sub.textContent = `Week ${week} of 4 · ${breed}`;
+
+  const list = document.getElementById('days-list');
+  if (!list) return;
+
+  // Locked week message
+  if (!unlocked) {
+    const prevDone = getWeekCompletedCount(week - 1);
+    const needed = DAYS_TO_UNLOCK - prevDone;
+    list.innerHTML = `
+      <div style="text-align:center;padding:40px 20px">
+        <div style="font-size:56px;margin-bottom:16px">🔒</div>
+        <div style="font-family:'Instrument Serif',serif;font-size:22px;color:var(--ink);margin-bottom:10px">Week ${week} is locked</div>
+        <div style="font-size:14px;font-weight:600;color:var(--gray);line-height:1.6;margin-bottom:24px">Complete ${needed} more day${needed > 1 ? 's' : ''} in Week ${week-1} to unlock this week.</div>
+        <div style="background:var(--bone);border-radius:16px;padding:16px;text-align:left">
+          <div style="font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--gray);margin-bottom:10px">Your Week ${week-1} Progress</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            ${Array.from({length:7},(_,i)=>`<div style="width:32px;height:32px;border-radius:8px;background:${isDayComplete(week-1,i+1)?'var(--paw)':'var(--stone)'};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:white">${isDayComplete(week-1,i+1)?'✓':i+1}</div>`).join('')}
+          </div>
+          <div style="margin-top:10px;font-size:13px;font-weight:700;color:var(--paw)">${prevDone}/${DAYS_TO_UNLOCK} days completed</div>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  // Progress bar for current week
+  const progressPct = Math.round((weekDone / 7) * 100);
+
+  let html = `
+    <div class="week-summary">
+      <div class="ws-icon">${plan.icon}</div>
+      <div style="flex:1">
+        <div class="ws-title">${plan.theme}</div>
+        <div class="ws-desc">${plan.description}</div>
+        <div style="margin-top:8px;background:rgba(255,255,255,.1);border-radius:99px;height:5px;overflow:hidden">
+          <div style="height:100%;width:${progressPct}%;background:var(--paw);border-radius:99px;transition:width .4s"></div>
+        </div>
+        <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,.5);margin-top:4px">${weekDone}/7 days complete</div>
+      </div>
+    </div>
+  `;
+
+  plan.days.forEach((day, idx) => {
+    const dayNum = idx + 1;
+    const isDone = isDayComplete(week, dayNum);
+    const isToday = week === todayWeek && dayNum === todayDay;
+    const isFuture = !isDone && !isToday;
+
+    const cardClass = isToday ? 'day-card today' : isDone ? 'day-card completed' : 'day-card';
+    const numDisplay = isDone ? '✓' : dayNum;
+
+    let badge = '';
+    if (isToday) badge = '<span class="day-badge today-badge">Today</span>';
+    else if (isDone) badge = '<span class="day-badge done-badge">Done ✓</span>';
+
+    const onclick = (isToday || isDone) ? `onclick="openLesson('${day.category}','${day.title}',${week},${dayNum})"` : 
+                    isFuture ? `onclick="showToast('Complete today first to unlock Day ${dayNum}')"` : '';
+
+    html += `
+      <div class="${cardClass}" ${onclick}>
+        <div class="day-num" style="${isDone?'background:var(--success);color:white':isToday?'background:var(--paw);color:white':''}">${numDisplay}</div>
+        <div class="day-info">
+          <div class="day-title" style="${isFuture&&!isDone?'color:var(--gray)':''}">${day.title}</div>
+          <div class="day-meta">⏱ ${day.duration} min · ${day.exercises.slice(0,2).join(' · ')}</div>
+        </div>
+        ${badge}
+      </div>
+    `;
+  });
+
+  list.innerHTML = html;
+}
+
+
+// ══════════════════════════════════════
+// PROGRESS-BASED UNLOCK SYSTEM
+// ══════════════════════════════════════
+
+const DAYS_TO_UNLOCK = 5; // days needed to unlock next week
+
+function getCompletedDays() {
+  return JSON.parse(localStorage.getItem('pp_completed_days') || '[]');
+}
+
+function markDayComplete(week, day) {
+  const completed = getCompletedDays();
+  const key = `w${week}d${day}`;
+  if (!completed.includes(key)) {
+    completed.push(key);
+    localStorage.setItem('pp_completed_days', JSON.stringify(completed));
+  }
+  updateStreak();
+  checkWeekUnlock(week);
+  showToast('🔥 Day complete! Keep going!');
+}
+
+function isDayComplete(week, day) {
+  return getCompletedDays().includes(`w${week}d${day}`);
+}
+
+function getWeekCompletedCount(week) {
+  const completed = getCompletedDays();
+  return completed.filter(k => k.startsWith(`w${week}d`)).length;
+}
+
+function isWeekUnlocked(week) {
+  if (week === 1) return true;
+  const prevWeekDone = getWeekCompletedCount(week - 1);
+  return prevWeekDone >= DAYS_TO_UNLOCK;
+}
+
+function checkWeekUnlock(currentWeek) {
+  const nextWeek = currentWeek + 1;
+  if (nextWeek <= 4 && isWeekUnlocked(nextWeek)) {
+    showToast(`🎉 Week ${nextWeek} unlocked! New challenges await!`);
+  }
+}
+
+function updateStreak() {
+  const completed = getCompletedDays();
+  const streakEl = document.querySelector('.streak-num');
+  if (streakEl) {
+    streakEl.textContent = '🔥 ' + completed.length;
+  }
+}
+
+function getTodayWeekDay() {
+  const completed = getCompletedDays();
+  const totalDone = completed.length;
+  const week = Math.min(Math.floor(totalDone / 7) + 1, 4);
+  const day = Math.min((totalDone % 7) + 1, 7);
+  return { week, day };
+}
+
+// Override completeLesson to track progress
+function completeLesson() {
+  const w = state.currentWeek || 1;
+  const d = state.currentDay || 1;
+  markDayComplete(w, d);
+
+  // Advance to next day
+  const next = getTodayWeekDay();
+  state.currentWeek = next.week;
+  state.currentDay = next.day;
+
+  // Update home card
+  updateHomeCard();
+
+  setTimeout(() => _origGoTo('s-home'), 600);
+}
+
+function updateHomeCard() {
+  const { week, day } = getTodayWeekDay();
+  const weekPlan = WEEK_PLANS[week];
+  if (!weekPlan) return;
+
+  const dayPlan = weekPlan.days[day - 1];
+  if (!dayPlan) return;
+
+  const labelEl = document.querySelector('.today-label span');
+  const titleEl = document.querySelector('.today-title');
+  const metaEl = document.querySelector('.today-meta');
+
+  const totalDay = (week - 1) * 7 + day;
+  if (labelEl) labelEl.textContent = `Day ${totalDay} of 28 · Week ${week}`;
+  if (titleEl) titleEl.textContent = dayPlan.title;
+  if (metaEl) metaEl.textContent = `⏱ ${dayPlan.duration} min · ${dayPlan.exercises.length} exercises · ${state.dogBreed || 'Dog'} tips`;
+
+  state.currentCategory = dayPlan.category;
+  state.currentLessonTitle = dayPlan.title;
+}
+
+
+// ══════════════════════════════════════
+// PLAN COMPLETION & RENEWAL HOOK
+// ══════════════════════════════════════
+
+function checkPlanComplete() {
+  let totalDone = 0;
+  for (let w = 1; w <= 4; w++) {
+    totalDone += getWeekCompletedCount(w);
+  }
+  if (totalDone >= 28) {
+    setTimeout(() => showPlanComplete(), 1000);
+  }
+}
+
+function showPlanComplete() {
+  const dogName = state.dogName || 'Buddy';
+  const breed = state.dogBreed || 'your dog';
+  const el = document.getElementById('s-home');
+  if (!el) return;
+
+  const banner = document.createElement('div');
+  banner.style.cssText = `
+    position:fixed;bottom:90px;left:50%;transform:translateX(-50%);
+    background:linear-gradient(135deg,#2C1A0E,#4A2A10);
+    color:white;border-radius:20px;padding:20px 24px;
+    width:calc(100% - 48px);max-width:370px;
+    box-shadow:0 8px 32px rgba(0,0,0,.3);
+    z-index:999;text-align:center;
+    border:2px solid rgba(232,87,42,.4);
+  `;
+  banner.innerHTML = `
+    <div style="font-size:40px;margin-bottom:10px">🎓</div>
+    <div style="font-family:'Instrument Serif',serif;font-size:20px;color:white;margin-bottom:8px">${dogName} completed the full plan!</div>
+    <div style="font-size:13px;color:rgba(255,255,255,.6);line-height:1.6;margin-bottom:16px">
+      Amazing progress with your ${breed}. The AI is generating your next advanced plan now...
+    </div>
+    <div style="background:var(--paw);border-radius:99px;padding:12px 24px;font-size:14px;font-weight:800;cursor:pointer" onclick="this.parentElement.remove();localStorage.clear();location.reload()">
+      🤖 Generate Plan 2 →
+    </div>
+    <div style="font-size:11px;color:rgba(255,255,255,.3);margin-top:10px">Tap to restart with an advanced program</div>
+  `;
+  document.body.appendChild(banner);
+}
+
+// Call on init
+window.addEventListener('load', () => {
+  setTimeout(checkPlanComplete, 3000);
+});
+
 </script>
 </body>
 </html>
